@@ -3,6 +3,7 @@ import { memo, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
+import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import type { PluggableList } from "unified";
@@ -13,9 +14,14 @@ const baseWildcard = baseAttributes["*"] ?? [];
 const baseSpan = baseAttributes.span ?? [];
 const baseCode = baseAttributes.code ?? [];
 const basePre = baseAttributes.pre ?? [];
+const HEADING_TAGS = ["h1", "h2", "h3", "h4", "h5", "h6"] as const;
 
 const katexSchema: Schema = {
   ...defaultSchema,
+  // Local markdown files are trusted content; disable id clobbering so
+  // fragment links like `#heading-slug` match what rehype-slug produced.
+  clobber: [],
+  clobberPrefix: "",
   tagNames: [...baseTagNames, "span", "math", "semantics", "annotation"],
   attributes: {
     ...baseAttributes,
@@ -27,6 +33,7 @@ const katexSchema: Schema = {
     span: [...baseSpan, "aria-hidden", "style"],
     code: [...baseCode, "className", "style"],
     pre: [...basePre, "className", "style", "tabIndex"],
+    ...Object.fromEntries(HEADING_TAGS.map((tag) => [tag, [...(baseAttributes[tag] ?? []), "id"]])),
   },
 };
 
@@ -79,6 +86,7 @@ const loadRehype = async (): Promise<PluggableList> => {
     loadHighlighter(),
   ]);
   return [
+    rehypeSlug,
     [
       rehypeShikiFromHighlighter,
       highlighter,
@@ -145,7 +153,7 @@ export function SyncMarkdownRenderer({ source }: MarkdownRendererProps) {
     <article className="markdown-body" data-testid="markdown-body">
       <ReactMarkdown
         remarkPlugins={remarkPlugins}
-        rehypePlugins={[[rehypeSanitize, katexSchema]] satisfies PluggableList}
+        rehypePlugins={[rehypeSlug, [rehypeSanitize, katexSchema]] satisfies PluggableList}
       >
         {source}
       </ReactMarkdown>

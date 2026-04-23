@@ -2,6 +2,8 @@
 
 A quick fixture used by E2E and manual smoke tests.
 
+**Jump:** [GFM features](#gfm-features) · [Code](#code) · [Math](#math) · [Link](#link)
+
 ## GFM features
 
 - [x] Task lists

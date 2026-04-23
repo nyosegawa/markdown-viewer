@@ -2,26 +2,230 @@
 
 .markdown-body {
   box-sizing: border-box;
-  max-width: 880px;
+  max-width: 820px;
   margin: 0 auto;
   padding: 0;
   background: transparent;
   color: inherit;
   font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.7;
 }
 
 .markdown-body pre {
   font-family: var(--font-mono);
 }
 
+/* Restore list markers — Tailwind v4 preflight resets ul/ol */
+.markdown-body ul {
+  list-style: disc outside;
+  padding-left: 2em;
+  margin: 0 0 1em;
+}
+
+.markdown-body ol {
+  list-style: decimal outside;
+  padding-left: 2em;
+  margin: 0 0 1em;
+}
+
+.markdown-body ul ul,
+.markdown-body ol ul {
+  list-style: circle outside;
+  margin: 0.25em 0;
+}
+
+.markdown-body ul ul ul,
+.markdown-body ol ul ul {
+  list-style: square outside;
+}
+
+.markdown-body ol ol,
+.markdown-body ul ol {
+  list-style: lower-alpha outside;
+  margin: 0.25em 0;
+}
+
+.markdown-body li + li {
+  margin-top: 0.25em;
+}
+
+.markdown-body li > p {
+  margin: 0.25em 0;
+}
+
+/* GFM task list — keep bullet hidden, align checkbox */
+.markdown-body li.task-list-item {
+  list-style: none;
+  margin-left: -1.4em;
+}
+
+.markdown-body li.task-list-item input[type="checkbox"] {
+  margin-right: 0.45em;
+  vertical-align: middle;
+}
+
+/* --- Light overrides — gentle contrast ---------------------------- */
+
+[data-theme="light"] .markdown-body {
+  color: var(--color-ink);
+}
+
+[data-theme="light"] .markdown-body a {
+  color: var(--color-accent);
+}
+
+[data-theme="light"] .markdown-body code:not(pre code) {
+  background: var(--color-surface-sunken);
+  color: var(--color-ink);
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  font-size: 0.88em;
+}
+
+[data-theme="light"] .markdown-body pre {
+  background: #f6f8fa;
+  border: 1px solid var(--color-surface-border);
+}
+
+[data-theme="light"] .markdown-body blockquote {
+  color: var(--color-ink-muted);
+  border-left-color: var(--color-surface-border);
+}
+
+[data-theme="light"] .markdown-body table {
+  border-color: var(--color-surface-border);
+}
+
+[data-theme="light"] .markdown-body table tr {
+  background: var(--color-surface);
+  border-top-color: var(--color-surface-border);
+}
+
+[data-theme="light"] .markdown-body table tr:nth-child(2n) {
+  background: var(--color-surface-muted);
+}
+
+[data-theme="light"] .markdown-body table th,
+[data-theme="light"] .markdown-body table td {
+  border-color: var(--color-surface-border);
+}
+
+[data-theme="light"] .markdown-body table th {
+  background: var(--color-surface-muted);
+}
+
+[data-theme="light"] .markdown-body hr {
+  background: var(--color-surface-border);
+}
+
+/* --- Dark overrides — readable, non-dazzling ---------------------- */
+
 [data-theme="dark"] .markdown-body {
+  color: var(--color-ink-dark);
   color-scheme: dark;
 }
 
+[data-theme="dark"] .markdown-body h1,
+[data-theme="dark"] .markdown-body h2,
+[data-theme="dark"] .markdown-body h3,
+[data-theme="dark"] .markdown-body h4,
+[data-theme="dark"] .markdown-body h5,
+[data-theme="dark"] .markdown-body h6 {
+  color: #e6edf3;
+  border-bottom-color: var(--color-surface-border-dark);
+}
+
+[data-theme="dark"] .markdown-body p,
+[data-theme="dark"] .markdown-body li {
+  color: var(--color-ink-dark);
+}
+
+[data-theme="dark"] .markdown-body a {
+  color: var(--color-accent-dark);
+}
+
+[data-theme="dark"] .markdown-body strong {
+  color: #e6edf3;
+}
+
+[data-theme="dark"] .markdown-body code:not(pre code) {
+  background: color-mix(in oklab, white 8%, transparent);
+  color: #e6edf3;
+  border: 1px solid var(--color-surface-border-dark);
+  padding: 0.12em 0.38em;
+  border-radius: 4px;
+  font-size: 0.88em;
+}
+
+[data-theme="dark"] .markdown-body pre {
+  background: var(--color-surface-sunken-dark);
+  border: 1px solid var(--color-surface-border-dark);
+  color: var(--color-ink-dark);
+}
+
+[data-theme="dark"] .markdown-body pre code {
+  background: transparent;
+  color: inherit;
+}
+
+[data-theme="dark"] .markdown-body blockquote {
+  color: var(--color-ink-muted-dark);
+  border-left: 4px solid var(--color-surface-border-dark);
+  background: color-mix(in oklab, white 3%, transparent);
+  padding: 0.3em 1em;
+  border-radius: 0 6px 6px 0;
+}
+
+/* Tables: subdued surfaces, good contrast */
+[data-theme="dark"] .markdown-body table {
+  border-color: var(--color-surface-border-dark);
+  background: transparent;
+}
+
+[data-theme="dark"] .markdown-body table tr {
+  background: transparent;
+  border-top: 1px solid var(--color-surface-border-dark);
+  color: var(--color-ink-dark);
+}
+
+[data-theme="dark"] .markdown-body table tr:nth-child(2n) {
+  background: color-mix(in oklab, white 3%, transparent);
+}
+
+[data-theme="dark"] .markdown-body table th,
+[data-theme="dark"] .markdown-body table td {
+  border-color: var(--color-surface-border-dark);
+  color: var(--color-ink-dark);
+  padding: 0.55em 0.9em;
+}
+
+[data-theme="dark"] .markdown-body table th {
+  background: color-mix(in oklab, white 5%, transparent);
+  color: #e6edf3;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .markdown-body hr {
+  background: var(--color-surface-border-dark);
+  border: 0;
+  height: 1px;
+}
+
+[data-theme="dark"] .markdown-body kbd {
+  background: var(--color-surface-sunken-dark);
+  border-color: var(--color-surface-border-dark);
+  color: var(--color-ink-dark);
+}
+
+/* --- Shiki code-block theming --------------------------- */
+
 .markdown-body .shiki {
-  padding: 0.9rem 1rem;
+  padding: 0.95rem 1.1rem;
   border-radius: 8px;
   overflow: auto;
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 [data-theme="light"] .markdown-body .shiki.github-dark,
@@ -29,8 +233,17 @@
   display: none;
 }
 
-/* KaTeX spacing adjustment inside markdown-body */
+[data-theme="dark"] .markdown-body .shiki.github-dark {
+  background: var(--color-surface-sunken-dark);
+  border: 1px solid var(--color-surface-border-dark);
+}
+
+/* KaTeX */
 .markdown-body .katex-display {
   margin: 1rem 0;
   overflow-x: auto;
+}
+
+[data-theme="dark"] .markdown-body .katex {
+  color: var(--color-ink-dark);
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { setNativeTheme } from "@/lib/tauri";
 
 export type Theme = "light" | "dark";
 
@@ -38,6 +39,7 @@ export function useTheme(): {
 
   useEffect(() => {
     applyTheme(theme);
+    void setNativeTheme(theme);
     try {
       window.localStorage.setItem(STORAGE_KEY, theme);
     } catch {

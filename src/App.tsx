@@ -64,11 +64,17 @@ function App() {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape" && mode === "edit") {
         setMode("view");
+        return;
+      }
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && (e.key === "o" || e.key === "O")) {
+        e.preventDefault();
+        void handleOpenDialog();
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [mode]);
+  }, [mode, handleOpenDialog]);
 
   const toggleMode = useCallback(() => {
     setMode((m) => (m === "view" ? "edit" : "view"));
@@ -102,13 +108,26 @@ function App() {
 
         {!hasFile && file.status !== "loading" ? (
           <div className="empty-state" data-testid="empty-state">
-            <p>Drop a markdown file, click "Open", or pass one on the command line.</p>
+            <img src="/icon-mark.png" alt="" className="empty-state-mark" />
+            <h1 className="empty-state-title">Markdown Viewer</h1>
+            <p className="empty-state-hint">
+              Drag a <code>.md</code> file here, open one from disk, or pass a path on the command
+              line.
+            </p>
+            <button type="button" className="empty-state-cta" onClick={handleOpenDialog}>
+              Open file…
+            </button>
+            <span className="empty-state-shortcut">
+              <kbd>⌘</kbd>
+              <kbd>O</kbd>
+              <span>to open</span>
+            </span>
           </div>
         ) : null}
 
         {hasFile && file.status === "error" ? (
-          <div className="empty-state" data-testid="error-state">
-            <p>Failed to open file.</p>
+          <div className="error-state" data-testid="error-state">
+            <strong>Failed to open file.</strong>
             <pre>{file.error}</pre>
           </div>
         ) : null}
