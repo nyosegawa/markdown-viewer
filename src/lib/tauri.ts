@@ -40,6 +40,14 @@ export async function listenFileChanged(handler: (path: string) => void): Promis
   });
 }
 
+export async function listenOpenFile(handler: (path: string) => void): Promise<UnlistenFn> {
+  if (!isTauri()) return () => undefined;
+  const { listen } = await import("@tauri-apps/api/event");
+  return listen<string>("open-file", (event) => {
+    if (event.payload) handler(event.payload);
+  });
+}
+
 export async function openFileDialog(): Promise<string | null> {
   if (!isTauri()) return null;
   const { open } = await import("@tauri-apps/plugin-dialog");

@@ -6,7 +6,7 @@ import { Viewer } from "@/components/Viewer";
 import { useMarkdownFile } from "@/hooks/useMarkdownFile";
 import { useRecentFiles } from "@/hooks/useRecentFiles";
 import { useTheme } from "@/hooks/useTheme";
-import { getCliPath, openFileDialog } from "@/lib/tauri";
+import { getCliPath, listenOpenFile, openFileDialog } from "@/lib/tauri";
 
 function App() {
   const { theme, toggleTheme } = useTheme();
@@ -37,6 +37,26 @@ function App() {
       .catch((err) => console.warn("cli path lookup failed", err));
     return () => {
       cancelled = true;
+    };
+  }, [handleOpenPath]);
+
+  useEffect(() => {
+    let active = true;
+    let unlisten: (() => void) | null = null;
+    listenOpenFile((path) => {
+      if (active) void handleOpenPath(path);
+    })
+      .then((u) => {
+        if (!active) {
+          u();
+          return;
+        }
+        unlisten = u;
+      })
+      .catch((err) => console.warn("open-file listener failed", err));
+    return () => {
+      active = false;
+      if (unlisten) unlisten();
     };
   }, [handleOpenPath]);
 
