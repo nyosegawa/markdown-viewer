@@ -10,12 +10,25 @@ Fast, native **Markdown viewer** built on [Tauri 2.x](https://tauri.app). View-f
 - **KaTeX math** (`$inline$` and `$$block$$`)
 - **GitHub-style theming** via `github-markdown-css`, with runtime dark / light switch (default: follow system, persisted per user)
 - **CodeMirror 6** edit mode — lazy-loaded, only paid for when you press Edit
-- **Drag & drop** a file onto the window, or use the Open dialog, or pass a path on the command line:
-  ```bash
-  markdown-viewer path/to/file.md
-  ```
+- **Four ways to open a file**
+  - Drag & drop onto the window
+  - Toolbar **Open** dialog
+  - CLI argument: `markdown-viewer path/to/file.md`
+  - **Finder / macOS Launch Services** — double-click `.md` / `.markdown` / `.mdx`, or `open foo.md`
 - **Hot reload** — changes on disk (from any external editor) reflow instantly
 - **Recent files** history (last 10) in the toolbar
+
+## Install (local, unsigned)
+
+```bash
+# After `npm run tauri build`
+cp -R src-tauri/target/release/bundle/macos/markdown-viewer.app /Applications/
+xattr -dr com.apple.quarantine /Applications/markdown-viewer.app
+
+# Register + set as default handler for .md/.markdown/.mdx (requires duti: `brew install duti`)
+/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -f /Applications/markdown-viewer.app
+for ext in md markdown mdx; do duti -s com.nyosegawa.markdownviewer $ext all; done
+```
 
 ## Development
 
