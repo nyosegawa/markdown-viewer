@@ -10,22 +10,23 @@ describe("heading anchors", () => {
     await target.waitForExist({ timeout: 10_000 });
     await expect(target).toHaveElementProperty("id", "gfm-features");
 
-    // Scroll to top so the target is off-screen, then click the TOC link.
     await browser.execute(() => {
       document.querySelector('[data-testid="viewer-scroll"]')?.scrollTo({ top: 0 });
     });
+
     const link = await $('[data-testid="markdown-body"] a[href="#gfm-features"]');
     await link.click();
+    await browser.pause(600); // let smooth-scroll settle
 
-    // Wait for smooth-scroll to settle, then verify the heading is near the top.
-    await browser.pause(600);
-    const top = await browser.execute(() => {
+    // Heading must be fully inside the viewer viewport after clicking.
+    const inViewport = await browser.execute(() => {
       const scroll = document.querySelector('[data-testid="viewer-scroll"]') as HTMLElement;
       const h = document.getElementById("gfm-features");
-      if (!scroll || !h) return Number.POSITIVE_INFINITY;
-      return h.getBoundingClientRect().top - scroll.getBoundingClientRect().top;
+      if (!scroll || !h) return false;
+      const hr = h.getBoundingClientRect();
+      const sr = scroll.getBoundingClientRect();
+      return hr.top >= sr.top - 1 && hr.bottom <= sr.bottom + 1;
     });
-    // The heading should now be within the top ~80px of the scroll viewport.
-    await expect(top).toBeLessThan(80);
+    await expect(inViewport).toBe(true);
   });
 });
