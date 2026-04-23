@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node", "@wdio/globals/types", "@wdio/mocha-framework", "expect-webdriverio"],
+    "moduleResolution": "bundler",
+    "isolatedModules": false,
+    "noEmit": true
+  },
+  "include": ["./**/*.ts"]
+}

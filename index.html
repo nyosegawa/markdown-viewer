@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Markdown Viewer</title>
+    <script>
+      (() => {
+        try {
+          const stored = localStorage.getItem("mdv.theme");
+          const preferDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? true;
+          const theme = stored === "light" || stored === "dark" ? stored : preferDark ? "dark" : "light";
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch {
+          document.documentElement.setAttribute("data-theme", "dark");
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

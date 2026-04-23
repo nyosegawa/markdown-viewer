@@ -1,0 +1,27 @@
+pre-commit:
+  parallel: true
+  commands:
+    biome:
+      glob: "*.{ts,tsx,js,jsx,css,json}"
+      run: npx --no-install biome check --write --no-errors-on-unmatched {staged_files}
+      stage_fixed: true
+    typecheck:
+      glob: "*.{ts,tsx}"
+      run: npx --no-install tsc --noEmit
+    rust-fmt:
+      glob: "src-tauri/**/*.rs"
+      root: src-tauri
+      run: cargo fmt --check
+    rust-clippy:
+      glob: "src-tauri/**/*.rs"
+      root: src-tauri
+      run: cargo clippy --all-targets -- -D warnings
+
+pre-push:
+  parallel: true
+  commands:
+    vitest:
+      run: npm run --silent test:run
+    cargo-test:
+      root: src-tauri
+      run: cargo test --lib --quiet

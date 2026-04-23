@@ -1,0 +1,36 @@
+@import "github-markdown-css/github-markdown.css";
+
+.markdown-body {
+  box-sizing: border-box;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-sans);
+}
+
+.markdown-body pre {
+  font-family: var(--font-mono);
+}
+
+[data-theme="dark"] .markdown-body {
+  color-scheme: dark;
+}
+
+.markdown-body .shiki {
+  padding: 0.9rem 1rem;
+  border-radius: 8px;
+  overflow: auto;
+}
+
+[data-theme="light"] .markdown-body .shiki.github-dark,
+[data-theme="dark"] .markdown-body .shiki.github-light {
+  display: none;
+}
+
+/* KaTeX spacing adjustment inside markdown-body */
+.markdown-body .katex-display {
+  margin: 1rem 0;
+  overflow-x: auto;
+}
