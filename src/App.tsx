@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { DropZone } from "@/components/DropZone";
 import { Editor } from "@/components/Editor";
 import { Toolbar, type ViewMode } from "@/components/Toolbar";
-import { Viewer } from "@/components/Viewer";
+import { Viewer } from "@/components/viewer";
 import { useMarkdownFile } from "@/hooks/useMarkdownFile";
 import { useRecentFiles } from "@/hooks/useRecentFiles";
 import { useTheme } from "@/hooks/useTheme";

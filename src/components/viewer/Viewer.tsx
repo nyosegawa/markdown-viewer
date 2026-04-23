@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { SearchBar } from "@/components/SearchBar";
 import { isTauri } from "@/lib/tauri";
+import { SearchBar } from "./SearchBar";
 
 const MarkdownRenderer = lazy(async () => {
   const mod = await import("@/lib/markdown");

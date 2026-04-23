@@ -125,7 +125,7 @@ export function SearchBar({ containerRef, onClose }: SearchBarProps) {
   const hasMatches = matches.length > 0;
 
   return (
-    <search className="search-bar" aria-label="Find in document">
+    <search className="search-bar" aria-label="Find in document" data-testid="search-bar">
       <svg
         className="search-bar-icon"
         viewBox="0 0 24 24"
