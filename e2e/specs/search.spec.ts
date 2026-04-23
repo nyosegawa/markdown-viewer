@@ -1,4 +1,5 @@
 import { $, browser, expect } from "@wdio/globals";
+import { Key } from "webdriverio";
 
 describe("find in document", () => {
   it("Ctrl+F opens the search bar; typing populates counter; Escape closes", async () => {
@@ -7,8 +8,8 @@ describe("find in document", () => {
     // Search bar should be absent at first.
     await expect(await $('[data-testid="search-bar"]').isExisting()).toBe(false);
 
-    // Open search with Ctrl+F (works on Linux CI; app also accepts Cmd+F).
-    await browser.action("key").down("Control").down("f").up("f").up("Control").perform();
+    // Open search with Ctrl+F (app also accepts Cmd+F via metaKey).
+    await browser.keys([Key.Ctrl, "f"]);
 
     const input = await $('[data-testid="search-input"]');
     await input.waitForExist({ timeout: 5_000 });
