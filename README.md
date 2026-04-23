@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="src-tauri/icons/app-icon.png" alt="markdown-viewer" width="128" height="128" />
+</p>
+
 # markdown-viewer
 
 Fast, native **Markdown viewer** built on [Tauri 2.x](https://tauri.app). View-first, edit-on-demand, GitHub-flavoured.

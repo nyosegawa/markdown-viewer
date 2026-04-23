@@ -1,0 +1,42 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="188" y1="128" x2="836" y2="896" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1F2937"/>
+      <stop offset="1" stop-color="#0D1117"/>
+    </linearGradient>
+    <linearGradient id="page" x1="322" y1="196" x2="654" y2="768" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E6EDF3"/>
+    </linearGradient>
+    <filter id="shadow" x="202" y="128" width="620" height="744" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="28"/>
+      <feGaussianBlur stdDeviation="24"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.0117647 0 0 0 0 0.0588235 0 0 0 0 0.117647 0 0 0 0.28 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_2"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_2" result="shape"/>
+    </filter>
+  </defs>
+
+  <rect x="96" y="96" width="832" height="832" rx="216" fill="url(#bg)"/>
+  <rect x="112" y="112" width="800" height="800" rx="200" stroke="#58A6FF" stroke-opacity="0.12" stroke-width="8"/>
+
+  <g filter="url(#shadow)">
+    <path d="M286 196C286 169.49 307.49 148 334 148H590L738 296V706C738 732.51 716.51 754 690 754H334C307.49 754 286 732.51 286 706V196Z" fill="url(#page)"/>
+    <path d="M590 148V248C590 274.51 611.49 296 638 296H738L590 148Z" fill="#C9D1D9"/>
+  </g>
+
+  <rect x="354" y="284" width="152" height="34" rx="17" fill="#58A6FF"/>
+  <rect x="354" y="366" width="152" height="34" rx="17" fill="#58A6FF"/>
+  <rect x="390" y="248" width="34" height="188" rx="17" fill="#58A6FF"/>
+  <rect x="436" y="248" width="34" height="188" rx="17" fill="#58A6FF"/>
+
+  <rect x="354" y="486" width="316" height="34" rx="17" fill="#8B949E"/>
+  <rect x="354" y="558" width="254" height="30" rx="15" fill="#8B949E" fill-opacity="0.72"/>
+
+  <ellipse cx="512" cy="694" rx="188" ry="120" fill="#58A6FF"/>
+  <ellipse cx="512" cy="694" rx="112" ry="112" fill="#0D1117"/>
+  <circle cx="512" cy="694" r="46" fill="#E6EDF3"/>
+  <circle cx="544" cy="662" r="16" fill="#FFFFFF" fill-opacity="0.9"/>
+</svg>
