@@ -54,7 +54,13 @@ export function Viewer({ source, tabId }: ViewerProps) {
       scrollByTabRef.current.set(prev, el.scrollTop);
     }
     if (tabId !== undefined) {
+      // Temporarily disable smooth scrolling so the restore is an instant
+      // jump; otherwise the CSS `scroll-behavior: smooth` used for anchor
+      // links animates the restore and makes tab switches feel laggy.
+      const prevBehavior = el.style.scrollBehavior;
+      el.style.scrollBehavior = "auto";
       el.scrollTop = scrollByTabRef.current.get(tabId) ?? 0;
+      el.style.scrollBehavior = prevBehavior;
     }
     lastTabRef.current = tabId;
   }, [tabId]);

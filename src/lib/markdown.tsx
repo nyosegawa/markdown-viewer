@@ -16,23 +16,67 @@ const baseCode = baseAttributes.code ?? [];
 const basePre = baseAttributes.pre ?? [];
 const HEADING_TAGS = ["h1", "h2", "h3", "h4", "h5", "h6"] as const;
 
+// MathML tags emitted by rehype-katex for its accessible annotation output.
+// Without these, `<math>...</math>` is stripped to plain text.
+const MATHML_TAGS = [
+  "math",
+  "semantics",
+  "annotation",
+  "annotation-xml",
+  "mrow",
+  "mi",
+  "mn",
+  "mo",
+  "ms",
+  "mspace",
+  "mtext",
+  "mfrac",
+  "msqrt",
+  "mroot",
+  "mstyle",
+  "merror",
+  "mpadded",
+  "mphantom",
+  "mover",
+  "munder",
+  "munderover",
+  "msub",
+  "msup",
+  "msubsup",
+  "mmultiscripts",
+  "mtable",
+  "mtr",
+  "mtd",
+  "maligngroup",
+  "malignmark",
+  "mprescripts",
+  "none",
+  "menclose",
+  "mfenced",
+  "mglyph",
+  "mlabeledtr",
+];
+
 const katexSchema: Schema = {
   ...defaultSchema,
   // Local markdown files are trusted content; disable id clobbering so
   // fragment links like `#heading-slug` match what rehype-slug produced.
   clobber: [],
   clobberPrefix: "",
-  tagNames: [...baseTagNames, "span", "math", "semantics", "annotation"],
+  tagNames: [...baseTagNames, "span", ...MATHML_TAGS],
   attributes: {
     ...baseAttributes,
-    "*": [
-      ...baseWildcard,
-      ["className", /^(katex|katex-.+|shiki|shiki-.+|language-.+|hljs)$/],
-      "style",
-    ],
+    // KaTeX/Shiki emit hundreds of internal class names (mord, strut,
+    // vlist-r, delimsizing, …) that a narrow regex cannot enumerate.
+    // Input is always a trusted local file, so we allow arbitrary class
+    // values rather than whitelisting each family.
+    "*": [...baseWildcard, "className", "style"],
     span: [...baseSpan, "aria-hidden", "style"],
     code: [...baseCode, "className", "style"],
     pre: [...basePre, "className", "style", "tabIndex"],
+    math: ["xmlns", "display"],
+    annotation: ["encoding"],
+    "annotation-xml": ["encoding"],
     ...Object.fromEntries(HEADING_TAGS.map((tag) => [tag, [...(baseAttributes[tag] ?? []), "id"]])),
   },
 };
@@ -87,6 +131,12 @@ const loadRehype = async (): Promise<PluggableList> => {
   ]);
   return [
     rehypeSlug,
+    // KaTeX must run before Shiki: remark-rehype emits math as
+    // `<pre><code class="math math-display">…</code></pre>`, and Shiki would
+    // otherwise treat "math" as an unknown language and render the LaTeX
+    // source as plaintext code. Letting KaTeX replace those nodes first
+    // removes the decoy before Shiki scans.
+    rehypeKatex,
     [
       rehypeShikiFromHighlighter,
       highlighter,
@@ -96,7 +146,6 @@ const loadRehype = async (): Promise<PluggableList> => {
         fallbackLanguage: "plaintext",
       },
     ],
-    rehypeKatex,
     [rehypeSanitize, katexSchema],
   ] satisfies PluggableList;
 };
@@ -117,7 +166,11 @@ function MarkdownRendererInner({ source }: MarkdownRendererProps) {
       .catch((err) => {
         console.error("failed to load rehype plugins", err);
         if (!canceled) {
-          setRehypePlugins([[rehypeSanitize, katexSchema]] satisfies PluggableList);
+          setRehypePlugins([
+            rehypeSlug,
+            rehypeKatex,
+            [rehypeSanitize, katexSchema],
+          ] satisfies PluggableList);
         }
       });
     return () => {
@@ -153,7 +206,9 @@ export function SyncMarkdownRenderer({ source }: MarkdownRendererProps) {
     <article className="markdown-body" data-testid="markdown-body">
       <ReactMarkdown
         remarkPlugins={remarkPlugins}
-        rehypePlugins={[rehypeSlug, [rehypeSanitize, katexSchema]] satisfies PluggableList}
+        rehypePlugins={
+          [rehypeSlug, rehypeKatex, [rehypeSanitize, katexSchema]] satisfies PluggableList
+        }
       >
         {source}
       </ReactMarkdown>

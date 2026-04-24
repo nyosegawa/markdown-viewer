@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Tab } from "@/hooks/useTabs";
 
+// Min pixel distance before a pointerdown is promoted to a drag.
+const DRAG_THRESHOLD_PX = 4;
+
 export interface TabsProps {
   tabs: Tab[];
   activeId: string | null;
@@ -28,6 +31,16 @@ interface MenuState {
   y: number;
 }
 
+interface DragState {
+  fromIndex: number;
+  pathLabel: string;
+  x: number;
+  y: number;
+  // Insertion point in 0..tabs.length. `k` = "insert between tab k-1 and k".
+  insertAt: number | null;
+  started: boolean;
+}
+
 export function Tabs({
   tabs,
   activeId,
@@ -41,23 +54,16 @@ export function Tabs({
   onReorder,
 }: TabsProps) {
   const [menu, setMenu] = useState<MenuState | null>(null);
-  // Drag source index (0..N-1). Kept as a ref so dragover handlers always see
-  // the current value; using state-only caused stale-closure dragovers to skip
-  // preventDefault, which disabled drops entirely.
-  const dragFromRef = useRef<number | null>(null);
-  const dropAtRef = useRef<number | null>(null);
-  const [dragFromIdx, setDragFromIdx] = useState<number | null>(null);
-  // Drop *insertion* index in 0..tabs.length. dropAt = k means "insert between
-  // tab k-1 and tab k"; dropAt = 0 = before first, dropAt = N = after last.
-  const [dropAt, setDropAt] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  const clearDrag = useCallback(() => {
-    dragFromRef.current = null;
-    dropAtRef.current = null;
-    setDragFromIdx(null);
-    setDropAt(null);
-  }, []);
+  const barRef = useRef<HTMLDivElement>(null);
+  const [drag, setDrag] = useState<DragState | null>(null);
+  // Mirror in a ref so document-level pointer listeners always see the
+  // current value (closure capture makes setState-only variants stale).
+  const dragRef = useRef<DragState | null>(null);
+  dragRef.current = drag;
+  // The spurious click that fires on pointerup after a successful drag
+  // would re-activate the source tab; this flag swallows exactly one click.
+  const suppressClickRef = useRef(false);
 
   const closeMenu = useCallback(() => setMenu(null), []);
 
@@ -84,243 +90,281 @@ export function Tabs({
     };
   }, [menu, closeMenu]);
 
+  const computeInsertAt = useCallback((clientX: number): number => {
+    const bar = barRef.current;
+    if (!bar) return 0;
+    const rows = Array.from(bar.querySelectorAll<HTMLDivElement>('[data-role="tab"]'));
+    if (rows.length === 0) return 0;
+    for (let k = 0; k < rows.length; k++) {
+      const r = rows[k].getBoundingClientRect();
+      if (clientX < r.left + r.width / 2) return k;
+    }
+    return rows.length;
+  }, []);
+
+  // Pointer-based DnD. Tauri's `dragDropEnabled: true` consumes native drag
+  // events at the window level and breaks HTML5 element DnD on macOS, so we
+  // implement reordering with pointer events — completely independent of the
+  // OS drag pipeline.
+  const beginDrag = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>, index: number, t: Tab) => {
+      if (e.button !== 0) return;
+      if ((e.target as HTMLElement).closest(".tab-close")) return;
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const initial: DragState = {
+        fromIndex: index,
+        pathLabel: basename(t.path),
+        x: startX,
+        y: startY,
+        insertAt: null,
+        started: false,
+      };
+      dragRef.current = initial;
+      setDrag(initial);
+
+      const onMove = (ev: PointerEvent) => {
+        const cur = dragRef.current;
+        if (!cur) return;
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+        let started = cur.started;
+        if (!started) {
+          if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+          started = true;
+        }
+        const insertAt = computeInsertAt(ev.clientX);
+        const next: DragState = { ...cur, x: ev.clientX, y: ev.clientY, insertAt, started };
+        dragRef.current = next;
+        setDrag(next);
+      };
+
+      const teardown = () => {
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", onUp);
+        document.removeEventListener("pointercancel", onCancelPtr);
+        document.removeEventListener("keydown", onKey);
+      };
+
+      const finish = (commit: boolean) => {
+        teardown();
+        const cur = dragRef.current;
+        dragRef.current = null;
+        setDrag(null);
+        if (!cur) return;
+        if (commit && cur.started && cur.insertAt !== null) {
+          let targetIdx = cur.insertAt;
+          if (targetIdx > cur.fromIndex) targetIdx -= 1;
+          if (targetIdx !== cur.fromIndex) onReorder(cur.fromIndex, targetIdx);
+          suppressClickRef.current = true;
+        }
+      };
+
+      const onUp = () => finish(true);
+      const onCancelPtr = () => finish(false);
+      const onKey = (ev: KeyboardEvent) => {
+        if (ev.key === "Escape") finish(false);
+      };
+
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
+      document.addEventListener("pointercancel", onCancelPtr);
+      document.addEventListener("keydown", onKey);
+    },
+    [computeInsertAt, onReorder],
+  );
+
   if (tabs.length === 0) return null;
 
   const menuIndex = menu?.tabIndex ?? -1;
   const hasRight = menuIndex >= 0 && menuIndex < tabs.length - 1;
   const hasOthers = tabs.length > 1;
 
+  const activeDrag = drag?.started ? drag : null;
+  // Hide the indicator for drops that are no-ops (onto either of the source's
+  // own sides).
+  const effectiveInsertAt = (() => {
+    if (!activeDrag || activeDrag.insertAt === null) return null;
+    const { fromIndex, insertAt } = activeDrag;
+    if (insertAt === fromIndex || insertAt === fromIndex + 1) return null;
+    return insertAt;
+  })();
+
   return (
-    <div
-      className="tab-bar"
-      role="tablist"
-      aria-label="Open files"
-      data-testid="tab-bar"
-      onDragOver={(e) => {
-        if (dragFromRef.current === null) return;
-        // Allow dropping in the empty space after the last tab.
-        const target = e.target as HTMLElement;
-        if (!target.closest(".tab")) {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = "move";
-          const insertAt = tabs.length;
-          if (dropAtRef.current !== insertAt) {
-            dropAtRef.current = insertAt;
-            setDropAt(insertAt);
-          }
-        }
-      }}
-      onDrop={(e) => {
-        if (dragFromRef.current === null) return;
-        const target = e.target as HTMLElement;
-        if (target.closest(".tab")) return; // Per-tab handler wins.
-        e.preventDefault();
-        const from = dragFromRef.current;
-        const to = dropAtRef.current ?? tabs.length;
-        clearDrag();
-        let dest = to;
-        if (dest > from) dest -= 1;
-        if (dest !== from) onReorder(from, dest);
-      }}
-      onDragLeave={(e) => {
-        // Clear preview when the pointer leaves the tabbar entirely.
-        if (
-          dragFromRef.current !== null &&
-          !e.currentTarget.contains(e.relatedTarget as Node | null)
-        ) {
-          dropAtRef.current = null;
-          setDropAt(null);
-        }
-      }}
-    >
-      {tabs.map((t, i) => {
-        const isActive = t.id === activeId;
-        const isDirty = t.status === "error";
-        const isSource = dragFromIdx === i;
-        // Suppress the drop indicator for no-op drops (dropping a tab onto
-        // either of its own sides).
-        const effectiveDropAt =
-          dropAt !== null &&
-          dragFromIdx !== null &&
-          (dropAt === dragFromIdx || dropAt === dragFromIdx + 1)
-            ? null
-            : dropAt;
-        const showBefore = effectiveDropAt === i;
-        const showAfter = effectiveDropAt === i + 1 && i === tabs.length - 1;
-        const classes = [
-          "tab",
-          isActive ? "is-active" : "",
-          isSource ? "is-dragging" : "",
-          showBefore ? "is-drop-before" : "",
-          showAfter ? "is-drop-after" : "",
-        ]
-          .filter(Boolean)
-          .join(" ");
-        return (
-          <div
-            key={t.id}
-            role="tab"
-            tabIndex={isActive ? 0 : -1}
-            aria-selected={isActive}
-            className={classes}
-            title={t.path}
-            draggable
-            onClick={() => onActivate(t.id)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
+    <>
+      <div
+        className="tab-bar"
+        role="tablist"
+        aria-label="Open files"
+        data-testid="tab-bar"
+        ref={barRef}
+      >
+        {tabs.map((t, i) => {
+          const isActive = t.id === activeId;
+          const isDirty = t.status === "error";
+          const isSource = activeDrag?.fromIndex === i;
+          const showBefore = effectiveInsertAt === i;
+          const showAfter = effectiveInsertAt === i + 1 && i === tabs.length - 1;
+          const classes = [
+            "tab",
+            isActive ? "is-active" : "",
+            isSource ? "is-dragging" : "",
+            showBefore ? "is-drop-before" : "",
+            showAfter ? "is-drop-after" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
+          return (
+            <div
+              key={t.id}
+              role="tab"
+              tabIndex={isActive ? 0 : -1}
+              aria-selected={isActive}
+              className={classes}
+              title={t.path}
+              data-role="tab"
+              data-testid={`tab-${i}`}
+              onPointerDown={(e) => beginDrag(e, i, t)}
+              onClick={() => {
+                if (suppressClickRef.current) {
+                  suppressClickRef.current = false;
+                  return;
+                }
                 onActivate(t.id);
-              }
-            }}
-            onAuxClick={(e) => {
-              // Middle-click closes.
-              if (e.button === 1) {
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onActivate(t.id);
+                }
+              }}
+              onAuxClick={(e) => {
+                if (e.button === 1) {
+                  e.preventDefault();
+                  onClose(t.id);
+                }
+              }}
+              onContextMenu={(e) => {
                 e.preventDefault();
-                onClose(t.id);
-              }
-            }}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              setMenu({
-                tabId: t.id,
-                tabIndex: i,
-                tabPath: t.path,
-                x: e.clientX,
-                y: e.clientY,
-              });
-            }}
-            onDragStart={(e) => {
-              dragFromRef.current = i;
-              setDragFromIdx(i);
-              e.dataTransfer.effectAllowed = "move";
-              e.dataTransfer.setData("text/plain", String(i));
-            }}
-            onDragOver={(e) => {
-              if (dragFromRef.current === null) return;
-              // Must preventDefault on every dragover to mark the element as
-              // a valid drop target — otherwise the browser disallows drop.
-              e.preventDefault();
-              e.dataTransfer.dropEffect = "move";
-              const rect = e.currentTarget.getBoundingClientRect();
-              const isLeftHalf = e.clientX < rect.left + rect.width / 2;
-              const insertAt = isLeftHalf ? i : i + 1;
-              if (dropAtRef.current !== insertAt) {
-                dropAtRef.current = insertAt;
-                setDropAt(insertAt);
-              }
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              const from = dragFromRef.current;
-              const to = dropAtRef.current;
-              clearDrag();
-              if (from === null || to === null) return;
-              // `to` is the *insertion* index. When removing `from` first,
-              // any target at a higher index shifts left by 1.
-              let target = to;
-              if (target > from) target -= 1;
-              if (target !== from) onReorder(from, target);
-            }}
-            onDragEnd={clearDrag}
-            data-testid={`tab-${i}`}
+                setMenu({
+                  tabId: t.id,
+                  tabIndex: i,
+                  tabPath: t.path,
+                  x: e.clientX,
+                  y: e.clientY,
+                });
+              }}
+            >
+              <span className="tab-label">{basename(t.path)}</span>
+              <button
+                type="button"
+                className="tab-close"
+                aria-label={`Close ${basename(t.path)}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClose(t.id);
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                tabIndex={-1}
+                data-testid={`tab-close-${i}`}
+              >
+                {isDirty ? "!" : "×"}
+              </button>
+            </div>
+          );
+        })}
+
+        {menu ? (
+          <div
+            ref={menuRef}
+            className="tab-context-menu"
+            style={{ left: menu.x, top: menu.y }}
+            role="menu"
+            data-testid="tab-context-menu"
           >
-            <span className="tab-label">{basename(t.path)}</span>
             <button
               type="button"
-              className="tab-close"
-              aria-label={`Close ${basename(t.path)}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose(t.id);
+              role="menuitem"
+              className="tab-context-item"
+              onClick={() => {
+                onClose(menu.tabId);
+                closeMenu();
               }}
-              tabIndex={-1}
-              data-testid={`tab-close-${i}`}
             >
-              {isDirty ? "!" : "×"}
+              Close tab
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className="tab-context-item"
+              disabled={!hasOthers}
+              onClick={() => {
+                onCloseOthers(menu.tabId);
+                closeMenu();
+              }}
+            >
+              Close other tabs
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className="tab-context-item"
+              disabled={!hasRight}
+              onClick={() => {
+                onCloseRight(menu.tabId);
+                closeMenu();
+              }}
+            >
+              Close tabs to the right
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className="tab-context-item"
+              onClick={() => {
+                onCloseAll();
+                closeMenu();
+              }}
+            >
+              Close all tabs
+            </button>
+            <div className="tab-context-divider" />
+            <button
+              type="button"
+              role="menuitem"
+              className="tab-context-item"
+              onClick={() => {
+                onCopyPath(menu.tabPath);
+                closeMenu();
+              }}
+            >
+              Copy path
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className="tab-context-item"
+              onClick={() => {
+                onRevealInFileManager(menu.tabPath);
+                closeMenu();
+              }}
+            >
+              Show in file manager
             </button>
           </div>
-        );
-      })}
+        ) : null}
+      </div>
 
-      {menu ? (
+      {activeDrag ? (
         <div
-          ref={menuRef}
-          className="tab-context-menu"
-          style={{ left: menu.x, top: menu.y }}
-          role="menu"
-          data-testid="tab-context-menu"
+          className="tab-drag-ghost"
+          style={{ transform: `translate(${activeDrag.x + 10}px, ${activeDrag.y + 8}px)` }}
+          aria-hidden="true"
+          data-testid="tab-drag-ghost"
         >
-          <button
-            type="button"
-            role="menuitem"
-            className="tab-context-item"
-            onClick={() => {
-              onClose(menu.tabId);
-              closeMenu();
-            }}
-          >
-            Close tab
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            className="tab-context-item"
-            disabled={!hasOthers}
-            onClick={() => {
-              onCloseOthers(menu.tabId);
-              closeMenu();
-            }}
-          >
-            Close other tabs
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            className="tab-context-item"
-            disabled={!hasRight}
-            onClick={() => {
-              onCloseRight(menu.tabId);
-              closeMenu();
-            }}
-          >
-            Close tabs to the right
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            className="tab-context-item"
-            onClick={() => {
-              onCloseAll();
-              closeMenu();
-            }}
-          >
-            Close all tabs
-          </button>
-          <div className="tab-context-divider" />
-          <button
-            type="button"
-            role="menuitem"
-            className="tab-context-item"
-            onClick={() => {
-              onCopyPath(menu.tabPath);
-              closeMenu();
-            }}
-          >
-            Copy path
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            className="tab-context-item"
-            onClick={() => {
-              onRevealInFileManager(menu.tabPath);
-              closeMenu();
-            }}
-          >
-            Show in file manager
-          </button>
+          {activeDrag.pathLabel}
         </div>
       ) : null}
-    </div>
+    </>
   );
 }

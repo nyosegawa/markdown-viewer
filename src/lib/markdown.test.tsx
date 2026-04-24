@@ -39,3 +39,42 @@ describe("SyncMarkdownRenderer (GFM)", () => {
     expect(container.textContent).toContain("plain text");
   });
 });
+
+describe("SyncMarkdownRenderer (math)", () => {
+  // remark-math requires display math (`$$...$$`) to sit in its own paragraph,
+  // i.e. separated by blank lines. Without that it is parsed as inline.
+  const DISPLAY_SIMPLE = "\n$$\nx^2\n$$\n";
+
+  it("renders display math via rehype-katex", () => {
+    const { container } = render(<SyncMarkdownRenderer source={DISPLAY_SIMPLE} />);
+    expect(container.querySelector(".katex-display")).not.toBeNull();
+    expect(container.querySelector(".katex")).not.toBeNull();
+  });
+
+  it("keeps KaTeX internal span classes through sanitization", () => {
+    // `mord` etc. are the internal positioning classes KaTeX emits. If
+    // sanitize strips them, the math looks like a broken string of letters.
+    const { container } = render(<SyncMarkdownRenderer source={DISPLAY_SIMPLE} />);
+    expect(container.querySelector(".mord")).not.toBeNull();
+  });
+
+  it("renders inline math without a display wrapper", () => {
+    const { container } = render(<SyncMarkdownRenderer source={"eq $x^2$ mid"} />);
+    expect(container.querySelector(".katex")).not.toBeNull();
+    expect(container.querySelector(".katex-display")).toBeNull();
+  });
+
+  it("renders a compute-optimization style display equation end-to-end", () => {
+    const src =
+      "\n$$\n\\min_{c \\in \\{0,1\\}^N} \\sum_i (1 - c_i) M_i \\quad \\text{s.t.} \\sum_i c_i R_i \\leq T_{\\max}\n$$\n";
+    const { container } = render(<SyncMarkdownRenderer source={src} />);
+    expect(container.querySelector(".katex-display")).not.toBeNull();
+    // Big operators and sub/superscripts all use `vlist` internally.
+    expect(container.querySelector(".vlist")).not.toBeNull();
+  });
+
+  it("preserves the <math> MathML annotation", () => {
+    const { container } = render(<SyncMarkdownRenderer source={DISPLAY_SIMPLE} />);
+    expect(container.querySelector("math")).not.toBeNull();
+  });
+});

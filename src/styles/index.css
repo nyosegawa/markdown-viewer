@@ -52,11 +52,16 @@ html,
 body,
 #root {
   height: 100%;
+  overscroll-behavior: none;
+}
+
+html,
+body {
+  overflow: hidden;
 }
 
 body {
   margin: 0;
-  overscroll-behavior: none;
 }
 
 /* --- App shell ------------------------------------------------------ */
@@ -243,6 +248,7 @@ body {
 .viewer-scroll {
   flex: 1 1 auto;
   overflow: auto;
+  overscroll-behavior: contain;
   padding: 2.5rem 3rem 4rem;
   scroll-behavior: smooth;
 }
@@ -258,6 +264,10 @@ body {
   height: 100%;
   font-family: var(--font-mono);
   font-size: 0.9375rem;
+}
+
+.editor-host .cm-scroller {
+  overscroll-behavior: contain;
 }
 
 /* --- Empty state --------------------------------------------------- */
@@ -405,6 +415,7 @@ body {
   min-width: 20rem;
   max-height: 22rem;
   overflow: auto;
+  overscroll-behavior: contain;
   background: var(--color-surface);
   border: 1px solid var(--color-surface-border);
   border-radius: 10px;
@@ -649,9 +660,15 @@ body {
   background: var(--color-surface-muted);
   border-bottom: 1px solid var(--color-surface-border);
   overflow-x: auto;
-  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.tab-bar::-webkit-scrollbar {
+  display: none;
 }
 
 [data-theme="dark"] .tab-bar {
@@ -660,6 +677,7 @@ body {
 }
 
 .tab {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -693,20 +711,59 @@ body {
   opacity: 0.45;
 }
 
-.tab.is-drop-before {
-  box-shadow: inset 2px 0 0 0 var(--color-accent);
+.tab.is-drop-before::before,
+.tab.is-drop-after::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 1px;
+  background: var(--color-accent);
+  pointer-events: none;
+  z-index: 2;
 }
 
-.tab.is-drop-after {
-  box-shadow: inset -2px 0 0 0 var(--color-accent);
+.tab.is-drop-before::before {
+  left: -1px;
 }
 
-[data-theme="dark"] .tab.is-drop-before {
-  box-shadow: inset 2px 0 0 0 var(--color-accent-dark);
+.tab.is-drop-after::before {
+  right: -1px;
 }
 
-[data-theme="dark"] .tab.is-drop-after {
-  box-shadow: inset -2px 0 0 0 var(--color-accent-dark);
+[data-theme="dark"] .tab.is-drop-before::before,
+[data-theme="dark"] .tab.is-drop-after::before {
+  background: var(--color-accent-dark);
+}
+
+.tab-drag-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  pointer-events: none;
+  max-width: 18rem;
+  padding: 0.35rem 0.6rem;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border: 1px solid var(--color-surface-border);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow:
+    0 10px 24px rgba(15, 22, 36, 0.18),
+    0 1px 2px rgba(15, 22, 36, 0.08);
+}
+
+[data-theme="dark"] .tab-drag-ghost {
+  background: var(--color-surface-muted-dark);
+  color: var(--color-ink-dark);
+  border-color: var(--color-surface-border-dark);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.42);
 }
 
 [data-theme="dark"] .tab {
