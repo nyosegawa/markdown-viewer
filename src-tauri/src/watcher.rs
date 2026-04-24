@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::thread;
@@ -8,7 +9,7 @@ use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 
-/// Event emitted to the frontend when the watched file is modified.
+/// Event emitted to the frontend when a watched file is modified.
 pub const FILE_CHANGED_EVENT: &str = "file-changed";
 
 #[derive(Debug, Clone, Serialize)]
@@ -18,31 +19,26 @@ pub struct FileChangedPayload {
 
 #[derive(Default)]
 pub struct WatcherState {
-    current: Option<WatcherHandle>,
+    handles: HashMap<PathBuf, WatcherHandle>,
 }
 
 struct WatcherHandle {
-    path: PathBuf,
     _watcher: RecommendedWatcher,
 }
 
 impl WatcherState {
     pub fn watch(&mut self, app: &AppHandle, path: &Path) -> Result<(), String> {
-        let path = path
+        let canonical = path
             .canonicalize()
             .map_err(|e| format!("failed to resolve path: {e}"))?;
 
-        if let Some(current) = &self.current {
-            if current.path == path {
-                return Ok(());
-            }
+        if self.handles.contains_key(&canonical) {
+            return Ok(());
         }
-        self.clear();
 
         let (tx, rx) = mpsc::channel::<notify::Result<notify::Event>>();
-
-        let watch_target = parent_dir(&path)?;
-        let target_path = path.clone();
+        let watch_target = parent_dir(&canonical)?;
+        let emit_path = canonical.clone();
 
         let mut watcher = notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
             let _ = tx.send(res);
@@ -54,7 +50,6 @@ impl WatcherState {
             .map_err(|e| format!("failed to watch: {e}"))?;
 
         let app_for_thread = app.clone();
-        let emit_path = target_path.clone();
         thread::spawn(move || {
             while let Ok(event) = rx.recv() {
                 let Ok(event) = event else { continue };
@@ -76,15 +71,26 @@ impl WatcherState {
             }
         });
 
-        self.current = Some(WatcherHandle {
-            path: target_path,
-            _watcher: watcher,
-        });
+        self.handles
+            .insert(canonical, WatcherHandle { _watcher: watcher });
+        Ok(())
+    }
+
+    pub fn unwatch(&mut self, path: &Path) -> Result<(), String> {
+        let canonical = path
+            .canonicalize()
+            .map_err(|e| format!("failed to resolve path: {e}"))?;
+        self.handles.remove(&canonical);
         Ok(())
     }
 
     pub fn clear(&mut self) {
-        self.current = None;
+        self.handles.clear();
+    }
+
+    #[cfg(test)]
+    pub fn watched_count(&self) -> usize {
+        self.handles.len()
     }
 }
 
@@ -116,14 +122,14 @@ mod tests {
     #[test]
     fn default_state_has_no_watcher() {
         let s = WatcherState::default();
-        assert!(s.current.is_none());
+        assert_eq!(s.watched_count(), 0);
     }
 
     #[test]
-    fn clear_drops_watcher() {
+    fn clear_drops_all_watchers() {
         let mut s = WatcherState::default();
         s.clear();
-        assert!(s.current.is_none());
+        assert_eq!(s.watched_count(), 0);
     }
 
     #[test]

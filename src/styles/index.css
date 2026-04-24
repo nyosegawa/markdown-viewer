@@ -637,6 +637,329 @@ body {
   background-color: rgba(255, 160, 60, 0.6);
 }
 
+/* --- Tab bar ------------------------------------------------------- */
+
+.tab-bar {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+  gap: 1px;
+  padding: 0 0.25rem;
+  background: var(--color-surface-muted);
+  border-bottom: 1px solid var(--color-surface-border);
+  overflow-x: auto;
+  scrollbar-width: thin;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+[data-theme="dark"] .tab-bar {
+  background: var(--color-surface-sunken-dark);
+  border-bottom-color: var(--color-surface-border-dark);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 16rem;
+  min-width: 5rem;
+  height: 32px;
+  padding: 0 0.35rem 0 0.7rem;
+  border-right: 1px solid var(--color-surface-border);
+  background: transparent;
+  color: var(--color-ink-muted);
+  font-size: 0.8125rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.tab:hover {
+  background: color-mix(in oklab, var(--color-ink) 6%, transparent);
+  color: var(--color-ink);
+}
+
+.tab.is-active {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  box-shadow: inset 0 -2px 0 0 var(--color-accent);
+}
+
+.tab.is-dragging {
+  opacity: 0.45;
+}
+
+.tab.is-drop-target {
+  box-shadow: inset 2px 0 0 0 var(--color-accent);
+}
+
+[data-theme="dark"] .tab {
+  border-right-color: var(--color-surface-border-dark);
+  color: var(--color-ink-muted-dark);
+}
+
+[data-theme="dark"] .tab:hover {
+  background: color-mix(in oklab, white 6%, transparent);
+  color: var(--color-ink-dark);
+}
+
+[data-theme="dark"] .tab.is-active {
+  background: var(--color-surface-muted-dark);
+  color: var(--color-ink-dark);
+  box-shadow: inset 0 -2px 0 0 var(--color-accent-dark);
+}
+
+.tab-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab-close {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.55;
+}
+
+.tab:hover .tab-close,
+.tab.is-active .tab-close {
+  opacity: 1;
+}
+
+.tab-close:hover {
+  background: color-mix(in oklab, var(--color-ink) 14%, transparent);
+}
+
+[data-theme="dark"] .tab-close:hover {
+  background: color-mix(in oklab, white 14%, transparent);
+}
+
+/* --- Tab context menu --------------------------------------------- */
+
+.tab-context-menu {
+  position: fixed;
+  z-index: 40;
+  min-width: 14rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: 10px;
+  box-shadow:
+    0 16px 44px rgba(15, 22, 36, 0.18),
+    0 1px 2px rgba(15, 22, 36, 0.08);
+  padding: 0.25rem;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme="dark"] .tab-context-menu {
+  background: var(--color-surface-muted-dark);
+  border-color: var(--color-surface-border-dark);
+  box-shadow:
+    0 20px 56px rgba(0, 0, 0, 0.6),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.tab-context-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.4rem 0.65rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8125rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tab-context-item:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--color-ink) 8%, transparent);
+}
+
+.tab-context-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+[data-theme="dark"] .tab-context-item:hover:not(:disabled) {
+  background: color-mix(in oklab, white 9%, transparent);
+}
+
+.tab-context-divider {
+  height: 1px;
+  background: var(--color-surface-border);
+  margin: 0.25rem 0.2rem;
+}
+
+[data-theme="dark"] .tab-context-divider {
+  background: var(--color-surface-border-dark);
+}
+
+/* --- Shortcut help modal ------------------------------------------ */
+
+.shortcut-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: color-mix(in oklab, black 35%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.shortcut-dialog {
+  width: min(520px, 100%);
+  max-height: 80vh;
+  overflow: auto;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border-radius: 12px;
+  box-shadow:
+    0 24px 72px rgba(15, 22, 36, 0.35),
+    0 2px 6px rgba(15, 22, 36, 0.1);
+  padding: 1.25rem 1.25rem 1.1rem;
+}
+
+[data-theme="dark"] .shortcut-dialog {
+  background: var(--color-surface-muted-dark);
+  color: var(--color-ink-dark);
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.7),
+    0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.shortcut-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.9rem;
+}
+
+.shortcut-dialog-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.shortcut-dialog-close {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.shortcut-dialog-close:hover {
+  background: color-mix(in oklab, var(--color-ink) 10%, transparent);
+}
+
+[data-theme="dark"] .shortcut-dialog-close:hover {
+  background: color-mix(in oklab, white 10%, transparent);
+}
+
+.shortcut-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.shortcut-table th,
+.shortcut-table td {
+  padding: 0.4rem 0.2rem;
+  text-align: left;
+  vertical-align: middle;
+  border-top: 1px solid var(--color-surface-border);
+}
+
+.shortcut-table tr:first-child th,
+.shortcut-table tr:first-child td {
+  border-top: 0;
+}
+
+[data-theme="dark"] .shortcut-table th,
+[data-theme="dark"] .shortcut-table td {
+  border-top-color: var(--color-surface-border-dark);
+}
+
+.shortcut-table th {
+  font-weight: 500;
+  color: var(--color-ink);
+  width: 60%;
+}
+
+[data-theme="dark"] .shortcut-table th {
+  color: var(--color-ink-dark);
+}
+
+.shortcut-table td {
+  text-align: right;
+}
+
+.shortcut-keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.35rem;
+}
+
+.shortcut-keys kbd {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 5px;
+  border: 1px solid var(--color-surface-border);
+  background: var(--color-surface-muted);
+  color: var(--color-ink);
+  min-width: 1.4rem;
+  text-align: center;
+}
+
+[data-theme="dark"] .shortcut-keys kbd {
+  border-color: var(--color-surface-border-dark);
+  background: var(--color-surface-dark);
+  color: var(--color-ink-dark);
+}
+
+.shortcut-or {
+  font-size: 0.7rem;
+  color: var(--color-ink-muted);
+}
+
+[data-theme="dark"] .shortcut-or {
+  color: var(--color-ink-muted-dark);
+}
+
+.shortcut-none {
+  color: var(--color-ink-muted);
+  font-style: italic;
+}
+
 /* --- Custom scrollbar ---------------------------------------------- */
 
 .viewer-scroll::-webkit-scrollbar,

@@ -26,10 +26,61 @@ pub fn watch_file(
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-pub fn unwatch_file(state: State<'_, Mutex<WatcherState>>) -> Result<(), String> {
+pub fn unwatch_file(
+    state: State<'_, Mutex<WatcherState>>,
+    path: Option<String>,
+) -> Result<(), String> {
     let mut guard = state.lock().map_err(|e| e.to_string())?;
-    guard.clear();
-    Ok(())
+    if let Some(p) = path {
+        guard.unwatch(Path::new(&p))
+    } else {
+        guard.clear();
+        Ok(())
+    }
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn reveal_in_file_manager(path: String) -> Result<(), String> {
+    let target = PathBuf::from(&path);
+    if !target.exists() {
+        return Err(format!("path does not exist: {}", target.display()));
+    }
+    reveal_impl(&target)
+}
+
+#[cfg(target_os = "macos")]
+fn reveal_impl(path: &Path) -> Result<(), String> {
+    use std::process::Command;
+    Command::new("open")
+        .arg("-R")
+        .arg(path)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("open -R failed: {e}"))
+}
+
+#[cfg(target_os = "windows")]
+fn reveal_impl(path: &Path) -> Result<(), String> {
+    use std::process::Command;
+    Command::new("explorer")
+        .arg(format!("/select,{}", path.display()))
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("explorer /select failed: {e}"))
+}
+
+#[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
+fn reveal_impl(path: &Path) -> Result<(), String> {
+    use std::process::Command;
+    let parent = path
+        .parent()
+        .ok_or_else(|| "path has no parent directory".to_string())?;
+    Command::new("xdg-open")
+        .arg(parent)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("xdg-open failed: {e}"))
 }
 
 #[cfg(test)]
@@ -74,5 +125,14 @@ mod tests {
             .await
             .expect("read ok");
         assert_eq!(out, text);
+    }
+
+    #[test]
+    fn reveal_rejects_missing_path() {
+        let dir = tempdir().expect("tempdir");
+        let missing = dir.path().join("nope.md");
+        let err =
+            reveal_in_file_manager(missing.to_string_lossy().into_owned()).expect_err("should err");
+        assert!(err.contains("does not exist"));
     }
 }

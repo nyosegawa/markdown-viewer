@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getCliPath,
   invokeReadMarkdown,
+  invokeRevealInFileManager,
   invokeUnwatchFile,
   invokeWatchFile,
   isTauri,
@@ -32,6 +33,11 @@ describe("lib/tauri stubs in non-Tauri env", () => {
   it("invokeWatchFile / invokeUnwatchFile resolve to undefined silently", async () => {
     await expect(invokeWatchFile("/ignored.md")).resolves.toBeUndefined();
     await expect(invokeUnwatchFile()).resolves.toBeUndefined();
+    await expect(invokeUnwatchFile("/ignored.md")).resolves.toBeUndefined();
+  });
+
+  it("invokeRevealInFileManager is a silent no-op outside Tauri", async () => {
+    await expect(invokeRevealInFileManager("/ignored.md")).resolves.toBeUndefined();
   });
 
   it("listenFileChanged / listenOpenFile / listenDragDrop return a no-op unlisten", async () => {

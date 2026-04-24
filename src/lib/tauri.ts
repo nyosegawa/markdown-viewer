@@ -26,10 +26,16 @@ export async function invokeWatchFile(path: string): Promise<void> {
   await invoke("watch_file", { path });
 }
 
-export async function invokeUnwatchFile(): Promise<void> {
+export async function invokeUnwatchFile(path?: string): Promise<void> {
   if (!isTauri()) return;
   const { invoke } = await import("@tauri-apps/api/core");
-  await invoke("unwatch_file");
+  await invoke("unwatch_file", { path: path ?? null });
+}
+
+export async function invokeRevealInFileManager(path: string): Promise<void> {
+  if (!isTauri()) return;
+  const { invoke } = await import("@tauri-apps/api/core");
+  await invoke("reveal_in_file_manager", { path });
 }
 
 export async function listenFileChanged(handler: (path: string) => void): Promise<UnlistenFn> {

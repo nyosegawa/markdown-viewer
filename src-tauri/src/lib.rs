@@ -24,6 +24,7 @@ pub fn run() {
             commands::read_markdown,
             commands::watch_file,
             commands::unwatch_file,
+            commands::reveal_in_file_manager,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

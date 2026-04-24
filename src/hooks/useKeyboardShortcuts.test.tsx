@@ -1,0 +1,126 @@
+import { act, renderHook } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
+
+function makeHandlers() {
+  return {
+    onOpenDialog: vi.fn(),
+    onCloseTab: vi.fn(),
+    onReopenClosed: vi.fn(),
+    onNextTab: vi.fn(),
+    onPrevTab: vi.fn(),
+    onJumpToIndex: vi.fn(),
+    onJumpToLast: vi.fn(),
+    onShowHelp: vi.fn(),
+    onEscape: vi.fn(),
+  };
+}
+
+describe("useKeyboardShortcuts", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("Ctrl+O fires onOpenDialog", async () => {
+    const h = makeHandlers();
+    renderHook(() => useKeyboardShortcuts(h));
+    await act(async () => {
+      await userEvent.keyboard("{Control>}o{/Control}");
+    });
+    expect(h.onOpenDialog).toHaveBeenCalled();
+  });
+
+  it("Cmd+W fires onCloseTab", async () => {
+    const h = makeHandlers();
+    renderHook(() => useKeyboardShortcuts(h));
+    await act(async () => {
+      await userEvent.keyboard("{Meta>}w{/Meta}");
+    });
+    expect(h.onCloseTab).toHaveBeenCalled();
+  });
+
+  it("Ctrl+Tab fires onNextTab, Ctrl+Shift+Tab fires onPrevTab", async () => {
+    const h = makeHandlers();
+    renderHook(() => useKeyboardShortcuts(h));
+    await act(async () => {
+      await userEvent.keyboard("{Control>}{Tab}{/Control}");
+    });
+    expect(h.onNextTab).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      await userEvent.keyboard("{Control>}{Shift>}{Tab}{/Shift}{/Control}");
+    });
+    expect(h.onPrevTab).toHaveBeenCalledTimes(1);
+  });
+
+  it("Cmd+Shift+T fires onReopenClosed", async () => {
+    const h = makeHandlers();
+    renderHook(() => useKeyboardShortcuts(h));
+    await act(async () => {
+      await userEvent.keyboard("{Meta>}{Shift>}t{/Shift}{/Meta}");
+    });
+    expect(h.onReopenClosed).toHaveBeenCalled();
+  });
+
+  it("Cmd+1 jumps to index 0, Cmd+9 jumps to last", async () => {
+    const h = makeHandlers();
+    renderHook(() => useKeyboardShortcuts(h));
+    await act(async () => {
+      await userEvent.keyboard("{Meta>}1{/Meta}");
+    });
+    expect(h.onJumpToIndex).toHaveBeenCalledWith(0);
+    await act(async () => {
+      await userEvent.keyboard("{Meta>}9{/Meta}");
+    });
+    expect(h.onJumpToLast).toHaveBeenCalled();
+  });
+
+  it("F1 fires onShowHelp", async () => {
+    const h = makeHandlers();
+    renderHook(() => useKeyboardShortcuts(h));
+    await act(async () => {
+      await userEvent.keyboard("{F1}");
+    });
+    expect(h.onShowHelp).toHaveBeenCalled();
+  });
+
+  it("Ctrl+? fires onShowHelp (shift+/)", async () => {
+    const h = makeHandlers();
+    renderHook(() => useKeyboardShortcuts(h));
+    await act(async () => {
+      await userEvent.keyboard("{Control>}{Shift>}/{/Shift}{/Control}");
+    });
+    expect(h.onShowHelp).toHaveBeenCalled();
+  });
+
+  it("bare Escape fires onEscape", async () => {
+    const h = makeHandlers();
+    renderHook(() => useKeyboardShortcuts(h));
+    await act(async () => {
+      await userEvent.keyboard("{Escape}");
+    });
+    expect(h.onEscape).toHaveBeenCalled();
+  });
+
+  it("skips shortcuts when focus is in an input (except help)", async () => {
+    const h = makeHandlers();
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    input.focus();
+    renderHook(() => useKeyboardShortcuts(h));
+
+    await act(async () => {
+      await userEvent.keyboard("{Control>}o{/Control}");
+    });
+    expect(h.onOpenDialog).not.toHaveBeenCalled();
+
+    // help still works because it's meant to rescue the user anywhere.
+    await act(async () => {
+      await userEvent.keyboard("{F1}");
+    });
+    expect(h.onShowHelp).toHaveBeenCalled();
+  });
+});
