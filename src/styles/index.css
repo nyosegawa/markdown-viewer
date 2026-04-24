@@ -663,8 +663,8 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  max-width: 16rem;
-  min-width: 5rem;
+  flex: 0 0 11rem;
+  width: 11rem;
   height: 32px;
   padding: 0 0.35rem 0 0.7rem;
   border-right: 1px solid var(--color-surface-border);
@@ -693,8 +693,20 @@ body {
   opacity: 0.45;
 }
 
-.tab.is-drop-target {
+.tab.is-drop-before {
   box-shadow: inset 2px 0 0 0 var(--color-accent);
+}
+
+.tab.is-drop-after {
+  box-shadow: inset -2px 0 0 0 var(--color-accent);
+}
+
+[data-theme="dark"] .tab.is-drop-before {
+  box-shadow: inset 2px 0 0 0 var(--color-accent-dark);
+}
+
+[data-theme="dark"] .tab.is-drop-after {
+  box-shadow: inset -2px 0 0 0 var(--color-accent-dark);
 }
 
 [data-theme="dark"] .tab {
@@ -949,9 +961,20 @@ body {
 .shortcut-or {
   font-size: 0.7rem;
   color: var(--color-ink-muted);
+  margin: 0 0.25rem;
 }
 
 [data-theme="dark"] .shortcut-or {
+  color: var(--color-ink-muted-dark);
+}
+
+.shortcut-plus {
+  font-size: 0.75rem;
+  color: var(--color-ink-muted);
+  margin: 0 1px;
+}
+
+[data-theme="dark"] .shortcut-plus {
   color: var(--color-ink-muted-dark);
 }
 

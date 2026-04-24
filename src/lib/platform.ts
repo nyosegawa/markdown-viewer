@@ -57,3 +57,9 @@ export function formatShortcut(shortcut: Shortcut, mac = isMac()): string {
   parts.push(prettyKey(shortcut.key, mac));
   return mac ? parts.join("") : parts.join("+");
 }
+
+/** Split a shortcut into its individual keycap tokens for UI rendering. */
+export function shortcutTokens(shortcut: Shortcut, mac = isMac()): string[] {
+  const labels = mac ? MAC_LABELS : PC_LABELS;
+  return [...shortcut.keys.map((k) => labels[k]), prettyKey(shortcut.key, mac)];
+}

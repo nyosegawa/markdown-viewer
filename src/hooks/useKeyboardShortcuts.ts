@@ -45,7 +45,9 @@ export function useKeyboardShortcuts(handlers: ShortcutHandlers) {
       const mod = e.metaKey || e.ctrlKey;
 
       // Help (works even when typing, so users never feel trapped).
-      if (e.key === "F1" || (mod && e.shiftKey && (e.key === "?" || e.key === "/"))) {
+      // Primary: ⌘/ (Ctrl+/). We also accept Shift variant (⌘? = ⌘⇧/) for
+      // users migrating from other apps, and F1 for PC muscle memory.
+      if (e.key === "F1" || (mod && (e.key === "/" || e.key === "?"))) {
         e.preventDefault();
         handlersRef.current.onShowHelp();
         return;

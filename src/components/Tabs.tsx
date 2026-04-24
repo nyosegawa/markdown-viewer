@@ -41,9 +41,23 @@ export function Tabs({
   onReorder,
 }: TabsProps) {
   const [menu, setMenu] = useState<MenuState | null>(null);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  // Drag source index (0..N-1). Kept as a ref so dragover handlers always see
+  // the current value; using state-only caused stale-closure dragovers to skip
+  // preventDefault, which disabled drops entirely.
+  const dragFromRef = useRef<number | null>(null);
+  const dropAtRef = useRef<number | null>(null);
+  const [dragFromIdx, setDragFromIdx] = useState<number | null>(null);
+  // Drop *insertion* index in 0..tabs.length. dropAt = k means "insert between
+  // tab k-1 and tab k"; dropAt = 0 = before first, dropAt = N = after last.
+  const [dropAt, setDropAt] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const clearDrag = useCallback(() => {
+    dragFromRef.current = null;
+    dropAtRef.current = null;
+    setDragFromIdx(null);
+    setDropAt(null);
+  }, []);
 
   const closeMenu = useCallback(() => setMenu(null), []);
 
@@ -77,15 +91,68 @@ export function Tabs({
   const hasOthers = tabs.length > 1;
 
   return (
-    <div className="tab-bar" role="tablist" aria-label="Open files" data-testid="tab-bar">
+    <div
+      className="tab-bar"
+      role="tablist"
+      aria-label="Open files"
+      data-testid="tab-bar"
+      onDragOver={(e) => {
+        if (dragFromRef.current === null) return;
+        // Allow dropping in the empty space after the last tab.
+        const target = e.target as HTMLElement;
+        if (!target.closest(".tab")) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+          const insertAt = tabs.length;
+          if (dropAtRef.current !== insertAt) {
+            dropAtRef.current = insertAt;
+            setDropAt(insertAt);
+          }
+        }
+      }}
+      onDrop={(e) => {
+        if (dragFromRef.current === null) return;
+        const target = e.target as HTMLElement;
+        if (target.closest(".tab")) return; // Per-tab handler wins.
+        e.preventDefault();
+        const from = dragFromRef.current;
+        const to = dropAtRef.current ?? tabs.length;
+        clearDrag();
+        let dest = to;
+        if (dest > from) dest -= 1;
+        if (dest !== from) onReorder(from, dest);
+      }}
+      onDragLeave={(e) => {
+        // Clear preview when the pointer leaves the tabbar entirely.
+        if (
+          dragFromRef.current !== null &&
+          !e.currentTarget.contains(e.relatedTarget as Node | null)
+        ) {
+          dropAtRef.current = null;
+          setDropAt(null);
+        }
+      }}
+    >
       {tabs.map((t, i) => {
         const isActive = t.id === activeId;
         const isDirty = t.status === "error";
+        const isSource = dragFromIdx === i;
+        // Suppress the drop indicator for no-op drops (dropping a tab onto
+        // either of its own sides).
+        const effectiveDropAt =
+          dropAt !== null &&
+          dragFromIdx !== null &&
+          (dropAt === dragFromIdx || dropAt === dragFromIdx + 1)
+            ? null
+            : dropAt;
+        const showBefore = effectiveDropAt === i;
+        const showAfter = effectiveDropAt === i + 1 && i === tabs.length - 1;
         const classes = [
           "tab",
           isActive ? "is-active" : "",
-          dragOverIndex === i && dragIndex !== null && dragIndex !== i ? "is-drop-target" : "",
-          dragIndex === i ? "is-dragging" : "",
+          isSource ? "is-dragging" : "",
+          showBefore ? "is-drop-before" : "",
+          showAfter ? "is-drop-after" : "",
         ]
           .filter(Boolean)
           .join(" ");
@@ -123,33 +190,38 @@ export function Tabs({
               });
             }}
             onDragStart={(e) => {
-              setDragIndex(i);
+              dragFromRef.current = i;
+              setDragFromIdx(i);
               e.dataTransfer.effectAllowed = "move";
-              try {
-                e.dataTransfer.setData("text/plain", String(i));
-              } catch {
-                /* some browsers disallow */
-              }
+              e.dataTransfer.setData("text/plain", String(i));
             }}
             onDragOver={(e) => {
-              if (dragIndex === null) return;
+              if (dragFromRef.current === null) return;
+              // Must preventDefault on every dragover to mark the element as
+              // a valid drop target — otherwise the browser disallows drop.
               e.preventDefault();
               e.dataTransfer.dropEffect = "move";
-              if (dragOverIndex !== i) setDragOverIndex(i);
-            }}
-            onDragLeave={() => {
-              if (dragOverIndex === i) setDragOverIndex(null);
+              const rect = e.currentTarget.getBoundingClientRect();
+              const isLeftHalf = e.clientX < rect.left + rect.width / 2;
+              const insertAt = isLeftHalf ? i : i + 1;
+              if (dropAtRef.current !== insertAt) {
+                dropAtRef.current = insertAt;
+                setDropAt(insertAt);
+              }
             }}
             onDrop={(e) => {
               e.preventDefault();
-              if (dragIndex !== null && dragIndex !== i) onReorder(dragIndex, i);
-              setDragIndex(null);
-              setDragOverIndex(null);
+              const from = dragFromRef.current;
+              const to = dropAtRef.current;
+              clearDrag();
+              if (from === null || to === null) return;
+              // `to` is the *insertion* index. When removing `from` first,
+              // any target at a higher index shifts left by 1.
+              let target = to;
+              if (target > from) target -= 1;
+              if (target !== from) onReorder(from, target);
             }}
-            onDragEnd={() => {
-              setDragIndex(null);
-              setDragOverIndex(null);
-            }}
+            onDragEnd={clearDrag}
             data-testid={`tab-${i}`}
           >
             <span className="tab-label">{basename(t.path)}</span>

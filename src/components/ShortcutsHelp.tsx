@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef } from "react";
-import { formatShortcut, isMac, type Shortcut } from "@/lib/platform";
+import { Fragment, useEffect, useMemo, useRef } from "react";
+import { isMac, type Shortcut, shortcutTokens } from "@/lib/platform";
 
 export interface ShortcutsHelpProps {
   open: boolean;
@@ -58,7 +58,7 @@ const ROWS: Row[] = [
   },
   {
     label: "Shortcut help",
-    shortcuts: [{ keys: ["mod", "shift"], key: "/" }],
+    shortcuts: [{ keys: ["mod"], key: "/" }],
     pcExtras: [{ keys: [], key: "F1" }],
   },
   {
@@ -138,16 +138,25 @@ export function ShortcutsHelp({ open, onClose }: ShortcutsHelpProps) {
                     {all.length === 0 ? (
                       <span className="shortcut-none">—</span>
                     ) : (
-                      all.map((sc, idx) => (
-                        <span
-                          // biome-ignore lint/suspicious/noArrayIndexKey: static label list.
-                          key={`${row.label}-${idx}`}
-                          className="shortcut-keys"
-                        >
-                          <kbd>{formatShortcut(sc, mac)}</kbd>
-                          {idx < all.length - 1 ? <span className="shortcut-or">or</span> : null}
-                        </span>
-                      ))
+                      all.map((sc, idx) => {
+                        const tokens = shortcutTokens(sc, mac);
+                        return (
+                          <span
+                            // biome-ignore lint/suspicious/noArrayIndexKey: static label list.
+                            key={`${row.label}-${idx}`}
+                            className="shortcut-keys"
+                          >
+                            {tokens.map((tok, tIdx) => (
+                              // biome-ignore lint/suspicious/noArrayIndexKey: static token list.
+                              <Fragment key={tIdx}>
+                                {tIdx > 0 ? <span className="shortcut-plus">+</span> : null}
+                                <kbd>{tok}</kbd>
+                              </Fragment>
+                            ))}
+                            {idx < all.length - 1 ? <span className="shortcut-or">or</span> : null}
+                          </span>
+                        );
+                      })
                     )}
                   </td>
                 </tr>

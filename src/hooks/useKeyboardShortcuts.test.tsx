@@ -87,7 +87,16 @@ describe("useKeyboardShortcuts", () => {
     expect(h.onShowHelp).toHaveBeenCalled();
   });
 
-  it("Ctrl+? fires onShowHelp (shift+/)", async () => {
+  it("Ctrl+/ fires onShowHelp (no shift needed)", async () => {
+    const h = makeHandlers();
+    renderHook(() => useKeyboardShortcuts(h));
+    await act(async () => {
+      await userEvent.keyboard("{Control>}/{/Control}");
+    });
+    expect(h.onShowHelp).toHaveBeenCalled();
+  });
+
+  it("Ctrl+? (shift+/) also fires onShowHelp as a legacy alias", async () => {
     const h = makeHandlers();
     renderHook(() => useKeyboardShortcuts(h));
     await act(async () => {

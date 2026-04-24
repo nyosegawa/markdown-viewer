@@ -237,14 +237,9 @@ function App() {
 
         {activeTab && activeTab.status !== "error" ? (
           activeTab.mode === "edit" ? (
-            <Editor
-              key={activeTab.id}
-              value={activeTab.source}
-              onChange={onEditorChange}
-              theme={theme}
-            />
+            <Editor value={activeTab.source} onChange={onEditorChange} theme={theme} />
           ) : (
-            <Viewer key={activeTab.id} source={activeTab.source} />
+            <Viewer source={activeTab.source} tabId={activeTab.id} />
           )
         ) : null}
       </main>

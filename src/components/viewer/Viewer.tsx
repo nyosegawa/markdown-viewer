@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { isTauri } from "@/lib/tauri";
 import { SearchBar } from "./SearchBar";
 
@@ -9,6 +9,10 @@ const MarkdownRenderer = lazy(async () => {
 
 export interface ViewerProps {
   source: string;
+  /** When present, scroll position is saved per-tab so switching tabs restores
+   *  the reader's place instead of remounting the Viewer (which re-instantiates
+   *  the Shiki highlighter and costs hundreds of ms). */
+  tabId?: string;
 }
 
 function decodeHash(hash: string): string {
@@ -33,9 +37,27 @@ async function openExternal(url: string): Promise<void> {
   }
 }
 
-export function Viewer({ source }: ViewerProps) {
+export function Viewer({ source, tabId }: ViewerProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  // Per-tab scroll positions. Kept in a ref so writes don't trigger rerenders.
+  const scrollByTabRef = useRef<Map<string, number>>(new Map());
+  const lastTabRef = useRef<string | undefined>(tabId);
+
+  // Save outgoing tab's scroll and restore incoming tab's scroll synchronously
+  // before paint, so switching feels instant.
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const prev = lastTabRef.current;
+    if (prev !== undefined && prev !== tabId) {
+      scrollByTabRef.current.set(prev, el.scrollTop);
+    }
+    if (tabId !== undefined) {
+      el.scrollTop = scrollByTabRef.current.get(tabId) ?? 0;
+    }
+    lastTabRef.current = tabId;
+  }, [tabId]);
 
   useEffect(() => {
     const root = scrollRef.current;
