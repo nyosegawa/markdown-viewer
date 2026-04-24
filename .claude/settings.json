@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ./.claude/hooks/pre-policy.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-policy.sh"
           }
         ]
       }
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ./.claude/hooks/post-ts-lint.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-ts-lint.sh"
           }
         ]
       }
@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ./.claude/hooks/stop-verify.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/stop-verify.sh"
           }
         ]
       }
