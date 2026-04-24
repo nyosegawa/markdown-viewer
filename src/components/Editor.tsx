@@ -10,13 +10,19 @@ export interface EditorProps {
   value: string;
   onChange: (next: string) => void;
   theme: Theme;
+  /** Byte offset into `value` to scroll to on first mount. Used to carry the
+   *  viewer's scroll position into edit mode. Ignored if 0 or out of range. */
+  initialSourceOffset?: number;
 }
 
-export function Editor({ value, onChange, theme }: EditorProps) {
+export function Editor({ value, onChange, theme, initialSourceOffset }: EditorProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   const valueRef = useRef(value);
+  // Capture the initial offset once: re-creating the EditorView on theme flip
+  // shouldn't yank the user back to this position.
+  const pendingOffsetRef = useRef(initialSourceOffset);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -49,6 +55,18 @@ export function Editor({ value, onChange, theme }: EditorProps) {
       parent: hostRef.current,
     });
     viewRef.current = view;
+
+    const pending = pendingOffsetRef.current;
+    if (typeof pending === "number" && pending > 0) {
+      pendingOffsetRef.current = undefined;
+      const doc = view.state.doc;
+      const clamped = Math.min(pending, doc.length);
+      const line = doc.lineAt(clamped);
+      view.dispatch({
+        selection: { anchor: line.from },
+        effects: EditorView.scrollIntoView(line.from, { y: "start" }),
+      });
+    }
 
     return () => {
       view.destroy();

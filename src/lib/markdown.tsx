@@ -7,6 +7,7 @@ import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import type { PluggableList } from "unified";
+import rehypeSourcePosition from "./rehype-source-position";
 
 const baseTagNames = defaultSchema.tagNames ?? [];
 const baseAttributes = defaultSchema.attributes ?? {};
@@ -70,7 +71,10 @@ const katexSchema: Schema = {
     // vlist-r, delimsizing, …) that a narrow regex cannot enumerate.
     // Input is always a trusted local file, so we allow arbitrary class
     // values rather than whitelisting each family.
-    "*": [...baseWildcard, "className", "style"],
+    // `data-srcstart` / `data-srcend` carry byte offsets back to the
+    // original markdown source — used by copy-as-markdown and the
+    // view→edit scroll preservation.
+    "*": [...baseWildcard, "className", "style", "data-srcstart", "data-srcend"],
     span: [...baseSpan, "aria-hidden", "style"],
     code: [...baseCode, "className", "style"],
     pre: [...basePre, "className", "style", "tabIndex"],
@@ -131,6 +135,10 @@ const loadRehype = async (): Promise<PluggableList> => {
   ]);
   return [
     rehypeSlug,
+    // Must run BEFORE katex/shiki so the data-srcstart/end attributes land
+    // on the outer containers those plugins preserve (they rewrite children
+    // but keep the wrapping <pre>/<span>).
+    rehypeSourcePosition,
     // KaTeX must run before Shiki: remark-rehype emits math as
     // `<pre><code class="math math-display">…</code></pre>`, and Shiki would
     // otherwise treat "math" as an unknown language and render the LaTeX
@@ -168,6 +176,7 @@ function MarkdownRendererInner({ source }: MarkdownRendererProps) {
         if (!canceled) {
           setRehypePlugins([
             rehypeSlug,
+            rehypeSourcePosition,
             rehypeKatex,
             [rehypeSanitize, katexSchema],
           ] satisfies PluggableList);
@@ -207,7 +216,12 @@ export function SyncMarkdownRenderer({ source }: MarkdownRendererProps) {
       <ReactMarkdown
         remarkPlugins={remarkPlugins}
         rehypePlugins={
-          [rehypeSlug, rehypeKatex, [rehypeSanitize, katexSchema]] satisfies PluggableList
+          [
+            rehypeSlug,
+            rehypeSourcePosition,
+            rehypeKatex,
+            [rehypeSanitize, katexSchema],
+          ] satisfies PluggableList
         }
       >
         {source}

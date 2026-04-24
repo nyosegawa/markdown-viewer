@@ -71,4 +71,36 @@ describe("Viewer", () => {
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByTestId("search-input")).toBeNull();
   });
+
+  it("copy rewrites clipboard text/plain with the original markdown source", async () => {
+    const source = "# Title\n\nfirst paragraph with **bold** word.\n\nsecond paragraph.\n";
+    await renderViewer(source);
+
+    const scroll = screen.getByTestId("viewer-scroll");
+    const firstP = scroll.querySelector("p");
+    expect(firstP).not.toBeNull();
+
+    // Select the full text of the first paragraph, then fire a copy event
+    // that bubbles up to the scroll container listener.
+    const selection = window.getSelection();
+    expect(selection).not.toBeNull();
+    const range = document.createRange();
+    if (firstP) range.selectNodeContents(firstP);
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+
+    const data = new DataTransfer();
+    const event = new ClipboardEvent("copy", {
+      bubbles: true,
+      cancelable: true,
+      clipboardData: data,
+    });
+    firstP?.dispatchEvent(event);
+
+    // Block granularity: copying inside a paragraph yields the whole paragraph
+    // source, which matches the markdown file exactly (including `**bold**`).
+    expect(data.getData("text/plain")).toContain("**bold**");
+    expect(data.getData("text/plain")).toContain("first paragraph");
+    expect(data.getData("text/plain")).not.toContain("second paragraph");
+  });
 });

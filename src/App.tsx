@@ -10,6 +10,7 @@ import { useRecentFiles } from "@/hooks/useRecentFiles";
 import { readStoredTabs, useTabPersistence } from "@/hooks/useTabPersistence";
 import { useTabs } from "@/hooks/useTabs";
 import { useTheme } from "@/hooks/useTheme";
+import { getSrcOffset } from "@/lib/scroll-memory";
 import { getCliPath, invokeRevealInFileManager, listenOpenFile, openFileDialog } from "@/lib/tauri";
 
 function App() {
@@ -237,7 +238,12 @@ function App() {
 
         {activeTab && activeTab.status !== "error" ? (
           activeTab.mode === "edit" ? (
-            <Editor value={activeTab.source} onChange={onEditorChange} theme={theme} />
+            <Editor
+              value={activeTab.source}
+              onChange={onEditorChange}
+              theme={theme}
+              initialSourceOffset={getSrcOffset(activeTab.id)}
+            />
           ) : (
             <Viewer source={activeTab.source} tabId={activeTab.id} />
           )
