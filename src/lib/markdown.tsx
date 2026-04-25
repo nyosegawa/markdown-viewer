@@ -1,12 +1,14 @@
 import type { Schema } from "hast-util-sanitize";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypeSlug from "rehype-slug";
+import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import type { PluggableList } from "unified";
+import { extractFrontMatter, type FrontMatterMatch } from "./front-matter";
 import rehypeSourcePosition from "./rehype-source-position";
 
 const baseTagNames = defaultSchema.tagNames ?? [];
@@ -85,7 +87,12 @@ const katexSchema: Schema = {
   },
 };
 
-const remarkPlugins: PluggableList = [remarkGfm, remarkMath];
+// `remark-frontmatter` recognises `---\n…\n---` as a `yaml` mdast node so
+// remark stops parsing it as a thematic break followed by paragraphs. The
+// node has no default mdast→hast handler, so the YAML disappears from the
+// rendered body — we surface it ourselves via <FrontMatterCard /> so users
+// can see the metadata.
+const remarkPlugins: PluggableList = [remarkFrontmatter, remarkGfm, remarkMath];
 
 /**
  * Shiki fine-grained bundle: we import only the languages + themes we care
@@ -162,8 +169,34 @@ export interface MarkdownRendererProps {
   source: string;
 }
 
+function FrontMatterCard({ match }: { match: FrontMatterMatch }) {
+  if (match.entries.length === 0) return null;
+  return (
+    <dl
+      className="front-matter"
+      data-srcstart={String(match.start)}
+      data-srcend={String(match.end)}
+      data-testid="front-matter"
+    >
+      {match.entries.map((entry, i) => (
+        <div
+          className="front-matter-row"
+          // Front matter keys may repeat (rare, but legal in raw YAML), so we
+          // pair the key with its index instead of using the key alone.
+          // biome-ignore lint/suspicious/noArrayIndexKey: stable order, no reordering.
+          key={`${entry.key}-${i}`}
+        >
+          <dt className="front-matter-key">{entry.key || "—"}</dt>
+          <dd className="front-matter-value">{entry.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 function MarkdownRendererInner({ source }: MarkdownRendererProps) {
   const [rehypePlugins, setRehypePlugins] = useState<PluggableList | null>(null);
+  const frontMatter = useMemo(() => extractFrontMatter(source), [source]);
 
   useEffect(() => {
     let canceled = false;
@@ -190,6 +223,7 @@ function MarkdownRendererInner({ source }: MarkdownRendererProps) {
   if (!rehypePlugins) {
     return (
       <article className="markdown-body" data-testid="markdown-body">
+        {frontMatter ? <FrontMatterCard match={frontMatter} /> : null}
         <p>Loading…</p>
       </article>
     );
@@ -197,6 +231,7 @@ function MarkdownRendererInner({ source }: MarkdownRendererProps) {
 
   return (
     <article className="markdown-body" data-testid="markdown-body">
+      {frontMatter ? <FrontMatterCard match={frontMatter} /> : null}
       <ReactMarkdown remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>
         {source}
       </ReactMarkdown>
@@ -211,8 +246,10 @@ export const MarkdownRenderer = memo(MarkdownRendererInner);
  * environments don't need to bundle the grammar engine.
  */
 export function SyncMarkdownRenderer({ source }: MarkdownRendererProps) {
+  const frontMatter = extractFrontMatter(source);
   return (
     <article className="markdown-body" data-testid="markdown-body">
+      {frontMatter ? <FrontMatterCard match={frontMatter} /> : null}
       <ReactMarkdown
         remarkPlugins={remarkPlugins}
         rehypePlugins={

@@ -78,3 +78,62 @@ describe("SyncMarkdownRenderer (math)", () => {
     expect(container.querySelector("math")).not.toBeNull();
   });
 });
+
+describe("SyncMarkdownRenderer (front matter)", () => {
+  const SRC =
+    "---\nlevel: 2\nchapter: 4\ntitle: RLHF・DPO・GRPO — 3 つの代表的な教え方\nslug: algorithms\nwritten_by: writer-subagent\n---\n\n# 第 4 章\n\nbody text\n";
+
+  it("renders the front-matter block as a styled card with key/value pairs", () => {
+    render(<SyncMarkdownRenderer source={SRC} />);
+    const card = screen.getByTestId("front-matter");
+    expect(card.tagName).toBe("DL");
+    const keys = Array.from(card.querySelectorAll(".front-matter-key")).map((el) => el.textContent);
+    const values = Array.from(card.querySelectorAll(".front-matter-value")).map(
+      (el) => el.textContent,
+    );
+    expect(keys).toEqual(["level", "chapter", "title", "slug", "written_by"]);
+    expect(values).toEqual([
+      "2",
+      "4",
+      "RLHF・DPO・GRPO — 3 つの代表的な教え方",
+      "algorithms",
+      "writer-subagent",
+    ]);
+  });
+
+  it("does not leak the raw delimiter text or YAML keys into the rendered body", () => {
+    const { container } = render(<SyncMarkdownRenderer source={SRC} />);
+    // No `<hr>` from a thematic break — that was the old failure mode where
+    // remark interpreted `---` as a horizontal rule.
+    expect(container.querySelector("hr")).toBeNull();
+    // The body itself should still render.
+    expect(screen.getByRole("heading", { level: 1, name: "第 4 章" })).toBeInTheDocument();
+    expect(container.textContent).toContain("body text");
+  });
+
+  it("stamps source-position offsets covering the entire front-matter block", () => {
+    render(<SyncMarkdownRenderer source={SRC} />);
+    const card = screen.getByTestId("front-matter");
+    const start = Number(card.dataset.srcstart);
+    const end = Number(card.dataset.srcend);
+    expect(start).toBe(0);
+    // Should include both `---` delimiters and end at (or just past) the
+    // closing newline.
+    expect(end).toBeGreaterThan(SRC.indexOf("---\n", 4));
+    expect(end).toBeLessThanOrEqual(SRC.indexOf("# 第 4 章"));
+  });
+
+  it("does not render a card when there is no front matter", () => {
+    render(<SyncMarkdownRenderer source={"# Just a heading\n"} />);
+    expect(screen.queryByTestId("front-matter")).toBeNull();
+  });
+
+  it("strips surrounding quotes from quoted scalar values", () => {
+    const src = "---\ntitle: \"Quoted Title\"\nname: 'single'\n---\n\nbody\n";
+    render(<SyncMarkdownRenderer source={src} />);
+    const values = Array.from(
+      screen.getByTestId("front-matter").querySelectorAll(".front-matter-value"),
+    ).map((el) => el.textContent);
+    expect(values).toEqual(["Quoted Title", "single"]);
+  });
+});
