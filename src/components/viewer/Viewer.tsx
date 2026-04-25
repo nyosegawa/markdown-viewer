@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { setSrcOffset } from "@/lib/scroll-memory";
+import { getSrcOffset, setSrcOffset } from "@/lib/scroll-memory";
 import { isTauri } from "@/lib/tauri";
 import { SearchBar } from "./SearchBar";
 
@@ -77,6 +77,38 @@ function topmostVisibleSrcOffset(scrollEl: HTMLElement, body: HTMLElement): numb
   return null;
 }
 
+/**
+ * Scroll `root` so the rendered element nearest a given source offset lands
+ * at the top. The DOM order of `[data-srcstart]` matches the source so we can
+ * pick the largest start ≤ targetOffset in a single pass.
+ *
+ * Returns true when a target was found and a scroll was attempted (even if
+ * targetOffset == 0 and the element was already at the top).
+ */
+export function scrollToSourceOffset(
+  root: HTMLElement,
+  body: HTMLElement,
+  targetOffset: number,
+): boolean {
+  const elements = body.querySelectorAll<HTMLElement>("[data-srcstart]");
+  if (elements.length === 0) return false;
+  let target: HTMLElement | null = null;
+  for (const el of elements) {
+    const s = Number(el.dataset.srcstart);
+    if (!Number.isFinite(s)) continue;
+    if (s <= targetOffset) target = el;
+    else break;
+  }
+  if (!target) return false;
+  const targetRect = target.getBoundingClientRect();
+  const rootRect = root.getBoundingClientRect();
+  const prevBehavior = root.style.scrollBehavior;
+  root.style.scrollBehavior = "auto";
+  root.scrollTop += targetRect.top - rootRect.top;
+  root.style.scrollBehavior = prevBehavior;
+  return true;
+}
+
 export function Viewer({ source, tabId }: ViewerProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -94,6 +126,11 @@ export function Viewer({ source, tabId }: ViewerProps) {
     tabIdRef.current = tabId;
   }, [tabId]);
 
+  // True only on the very first run of the layout effect below — used to skip
+  // the pixel-cache restore on Viewer (re)mounts so we can fall back to the
+  // cross-mode offset restore (edit → view returns).
+  const isFirstLayoutRunRef = useRef(true);
+
   // Save outgoing tab's scroll and restore incoming tab's scroll synchronously
   // before paint, so switching feels instant.
   useLayoutEffect(() => {
@@ -103,7 +140,11 @@ export function Viewer({ source, tabId }: ViewerProps) {
     if (prev !== undefined && prev !== tabId) {
       scrollByTabRef.current.set(prev, el.scrollTop);
     }
-    if (tabId !== undefined) {
+    // On Viewer (re)mount we leave scrollTop alone — the offset-based effect
+    // below handles edit→view restoration. After the first run we treat this
+    // as an in-Viewer tab switch and pixel-restore from the cache (instant
+    // and exact, which is what tab switches should feel like).
+    if (tabId !== undefined && !isFirstLayoutRunRef.current) {
       // Temporarily disable smooth scrolling so the restore is an instant
       // jump; otherwise the CSS `scroll-behavior: smooth` used for anchor
       // links animates the restore and makes tab switches feel laggy.
@@ -112,7 +153,33 @@ export function Viewer({ source, tabId }: ViewerProps) {
       el.scrollTop = scrollByTabRef.current.get(tabId) ?? 0;
       el.style.scrollBehavior = prevBehavior;
     }
+    isFirstLayoutRunRef.current = false;
     lastTabRef.current = tabId;
+  }, [tabId]);
+
+  // Edit→view restoration: when the editor wrote a source offset for this
+  // tab, scroll to the matching `[data-srcstart]` anchor as soon as the lazy
+  // markdown body is in the DOM. Skipped when the in-ref pixel cache already
+  // has an exact entry (in-Viewer tab switch wins; instant + exact).
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root || !tabId) return;
+    if (scrollByTabRef.current.has(tabId)) return;
+    const stored = getSrcOffset(tabId);
+    if (typeof stored !== "number" || stored <= 0) return;
+    const targetOffset: number = stored;
+    function attempt(): boolean {
+      if (!root) return false;
+      const body = root.querySelector<HTMLElement>('[data-testid="markdown-body"]');
+      if (!body) return false;
+      return scrollToSourceOffset(root, body, targetOffset);
+    }
+    if (attempt()) return;
+    const observer = new MutationObserver(() => {
+      if (attempt()) observer.disconnect();
+    });
+    observer.observe(root, { childList: true, subtree: true });
+    return () => observer.disconnect();
   }, [tabId]);
 
   useEffect(() => {

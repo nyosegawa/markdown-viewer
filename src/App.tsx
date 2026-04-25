@@ -243,6 +243,7 @@ function App() {
               onChange={onEditorChange}
               theme={theme}
               initialSourceOffset={getSrcOffset(activeTab.id)}
+              tabId={activeTab.id}
             />
           ) : (
             <Viewer source={activeTab.source} tabId={activeTab.id} />

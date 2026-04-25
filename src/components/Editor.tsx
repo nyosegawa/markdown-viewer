@@ -5,6 +5,7 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView, highlightActiveLine, keymap, lineNumbers } from "@codemirror/view";
 import { useEffect, useRef } from "react";
 import type { Theme } from "@/hooks/useTheme";
+import { setSrcOffset } from "@/lib/scroll-memory";
 
 export interface EditorProps {
   value: string;
@@ -13,9 +14,13 @@ export interface EditorProps {
   /** Byte offset into `value` to scroll to on first mount. Used to carry the
    *  viewer's scroll position into edit mode. Ignored if 0 or out of range. */
   initialSourceOffset?: number;
+  /** When provided, the editor records its topmost visible source offset to
+   *  the shared scroll-memory store under this id, so flipping back to view
+   *  mode can restore the same place in the rendered document. */
+  tabId?: string;
 }
 
-export function Editor({ value, onChange, theme, initialSourceOffset }: EditorProps) {
+export function Editor({ value, onChange, theme, initialSourceOffset, tabId }: EditorProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
@@ -23,6 +28,9 @@ export function Editor({ value, onChange, theme, initialSourceOffset }: EditorPr
   // Capture the initial offset once: re-creating the EditorView on theme flip
   // shouldn't yank the user back to this position.
   const pendingOffsetRef = useRef(initialSourceOffset);
+  // Mirror tabId so the scroll listener inside the EditorView lifecycle effect
+  // picks up tab switches without recreating the view.
+  const tabIdRef = useRef(tabId);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -31,6 +39,10 @@ export function Editor({ value, onChange, theme, initialSourceOffset }: EditorPr
   useEffect(() => {
     valueRef.current = value;
   }, [value]);
+
+  useEffect(() => {
+    tabIdRef.current = tabId;
+  }, [tabId]);
 
   useEffect(() => {
     if (!hostRef.current) return;
@@ -68,7 +80,30 @@ export function Editor({ value, onChange, theme, initialSourceOffset }: EditorPr
       });
     }
 
+    // Mirror the viewer's scroll-memory protocol: report the topmost visible
+    // line's source offset so flipping back to view mode can restore it. We
+    // throttle with rAF — CodeMirror fires scroll on every wheel notch.
+    let rafId: number | null = null;
+    const sample = () => {
+      rafId = null;
+      const id = tabIdRef.current;
+      if (!id) return;
+      const rect = view.dom.getBoundingClientRect();
+      // A few px below the top edge dodges any decoration/border stacking.
+      const pos = view.posAtCoords({ x: rect.left + 16, y: rect.top + 4 });
+      if (pos === null) return;
+      const line = view.state.doc.lineAt(pos);
+      setSrcOffset(id, line.from);
+    };
+    const onScroll = () => {
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(sample);
+    };
+    view.scrollDOM.addEventListener("scroll", onScroll, { passive: true });
+
     return () => {
+      view.scrollDOM.removeEventListener("scroll", onScroll);
+      if (rafId !== null) cancelAnimationFrame(rafId);
       view.destroy();
       viewRef.current = null;
     };
