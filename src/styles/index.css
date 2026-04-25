@@ -848,7 +848,10 @@ body {
 }
 
 .tab-context-item {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
   width: 100%;
   text-align: left;
   padding: 0.4rem 0.65rem;
@@ -859,6 +862,28 @@ body {
   font-size: 0.8125rem;
   border-radius: 6px;
   cursor: pointer;
+}
+
+.tab-context-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tab-context-shortcut {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  color: color-mix(in oklab, var(--color-ink) 55%, transparent);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .tab-context-shortcut {
+  color: color-mix(in oklab, white 55%, transparent);
+}
+
+.tab-context-item:disabled .tab-context-shortcut {
+  color: inherit;
 }
 
 .tab-context-item:hover:not(:disabled) {

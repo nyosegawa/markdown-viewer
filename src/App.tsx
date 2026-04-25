@@ -157,11 +157,21 @@ function App() {
   useKeyboardShortcuts({
     onOpenDialog: () => void handleOpenDialog(),
     onCloseTab: handleCloseActive,
+    onCloseOthers: () => {
+      if (activeId) void closeOthers(activeId);
+    },
+    onCloseAll: () => void closeAll(),
     onReopenClosed: () => void reopenClosed(),
     onNextTab: nextTab,
     onPrevTab: prevTab,
     onJumpToIndex: activateIndex,
     onJumpToLast: activateLast,
+    onCopyActivePath: () => {
+      if (activeTab) handleCopyPath(activeTab.path);
+    },
+    onRevealActiveInFileManager: () => {
+      if (activeTab) handleReveal(activeTab.path);
+    },
     onShowHelp: () => setHelpOpen(true),
     onEscape: () => {
       if (helpOpen) setHelpOpen(false);

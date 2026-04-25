@@ -129,6 +129,34 @@ describe("Tabs", () => {
     }
   });
 
+  it("context menu items show platform-aware shortcut hints next to their label", async () => {
+    const props = baseProps();
+    // Force the mac branch so the assertions are deterministic regardless of
+    // the host running the test.
+    const platformSpy = vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    try {
+      render(<Tabs tabs={[makeTab("/a.md", "a")]} activeId="a" {...props} />);
+      await userEvent.pointer({ keys: "[MouseRight]", target: screen.getByTestId("tab-0") });
+      const menu = await screen.findByTestId("tab-context-menu");
+      const closeItem = within(menu).getByRole("menuitem", { name: "Close tab" });
+      // Shortcut hint lives in a span so the accessible name stays clean,
+      // but the visible text should still contain the keycap.
+      expect(closeItem).toHaveTextContent("⌘W");
+      expect(within(menu).getByRole("menuitem", { name: "Close other tabs" })).toHaveTextContent(
+        "⌘⌥W",
+      );
+      expect(within(menu).getByRole("menuitem", { name: "Close all tabs" })).toHaveTextContent(
+        "⌘⇧W",
+      );
+      expect(within(menu).getByRole("menuitem", { name: "Copy path" })).toHaveTextContent("⌘⇧C");
+      expect(
+        within(menu).getByRole("menuitem", { name: "Show in file manager" }),
+      ).toHaveTextContent("⌘⇧R");
+    } finally {
+      platformSpy.mockRestore();
+    }
+  });
+
   it("Copy path / Show in file manager fire with the tab's path", async () => {
     const props = baseProps();
     render(<Tabs tabs={[makeTab("/path/to/a.md", "a")]} activeId="a" {...props} />);

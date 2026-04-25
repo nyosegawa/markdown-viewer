@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef } from "react";
-import { isMac, type Shortcut, shortcutTokens } from "@/lib/platform";
+import { isMac, type Shortcut, shortcutTokens, TAB_SHORTCUTS } from "@/lib/platform";
 
 export interface ShortcutsHelpProps {
   open: boolean;
@@ -22,7 +22,15 @@ const ROWS: Row[] = [
   },
   {
     label: "Close current tab",
-    shortcuts: [{ keys: ["mod"], key: "W" }],
+    shortcuts: [TAB_SHORTCUTS.closeTab],
+  },
+  {
+    label: "Close other tabs",
+    shortcuts: [TAB_SHORTCUTS.closeOthers],
+  },
+  {
+    label: "Close all tabs",
+    shortcuts: [TAB_SHORTCUTS.closeAll],
   },
   {
     label: "Reopen closed tab",
@@ -47,6 +55,14 @@ const ROWS: Row[] = [
   {
     label: "Jump to last tab",
     shortcuts: [{ keys: ["mod"], key: "9" }],
+  },
+  {
+    label: "Copy path of active tab",
+    shortcuts: [TAB_SHORTCUTS.copyPath],
+  },
+  {
+    label: "Show active tab in file manager",
+    shortcuts: [TAB_SHORTCUTS.revealInFileManager],
   },
   {
     label: "Toggle view / edit",

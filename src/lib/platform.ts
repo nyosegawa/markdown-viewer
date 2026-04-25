@@ -63,3 +63,15 @@ export function shortcutTokens(shortcut: Shortcut, mac = isMac()): string[] {
   const labels = mac ? MAC_LABELS : PC_LABELS;
   return [...shortcut.keys.map((k) => labels[k]), prettyKey(shortcut.key, mac)];
 }
+
+/**
+ * Canonical keyboard shortcuts for tab actions. Defined once so the menu,
+ * help dialog, and the keydown handler all stay in lockstep.
+ */
+export const TAB_SHORTCUTS = {
+  closeTab: { keys: ["mod"], key: "W" } satisfies Shortcut,
+  closeOthers: { keys: ["mod", "alt"], key: "W" } satisfies Shortcut,
+  closeAll: { keys: ["mod", "shift"], key: "W" } satisfies Shortcut,
+  copyPath: { keys: ["mod", "shift"], key: "C" } satisfies Shortcut,
+  revealInFileManager: { keys: ["mod", "shift"], key: "R" } satisfies Shortcut,
+} as const;

@@ -6,6 +6,10 @@ export interface ShortcutHandlers {
   onOpenDialog: () => void;
   /** ⌘W / Ctrl+W */
   onCloseTab: () => void;
+  /** ⌘⌥W / Ctrl+Alt+W — close every tab except the active one */
+  onCloseOthers: () => void;
+  /** ⌘⇧W / Ctrl+Shift+W — close every tab */
+  onCloseAll: () => void;
   /** ⌘⇧T / Ctrl+Shift+T */
   onReopenClosed: () => void;
   /** ⌃Tab / Ctrl+Tab (and Ctrl+PageDown on PC, ⌘⌥→ on mac) */
@@ -16,6 +20,10 @@ export interface ShortcutHandlers {
   onJumpToIndex: (index: number) => void;
   /** ⌘9 / Ctrl+9 — jump to last tab */
   onJumpToLast: () => void;
+  /** ⌘⇧C / Ctrl+Shift+C — copy active tab's absolute path */
+  onCopyActivePath: () => void;
+  /** ⌘⇧R / Ctrl+Shift+R — reveal active tab in Finder/Explorer */
+  onRevealActiveInFileManager: () => void;
   /** ⌘? / Ctrl+? / F1 */
   onShowHelp: () => void;
   /** Esc — only fires when no upstream handler intercepted it first. */
@@ -70,15 +78,41 @@ export function useKeyboardShortcuts(handlers: ShortcutHandlers) {
         return;
       }
 
+      // Order matters: more-specific (extra modifier) variants first so the
+      // bare ⌘W branch doesn't swallow ⌘⌥W / ⌘⇧W.
+      if (mod && e.altKey && !e.shiftKey && (e.key === "w" || e.key === "W")) {
+        e.preventDefault();
+        handlersRef.current.onCloseOthers();
+        return;
+      }
+
+      if (mod && e.shiftKey && !e.altKey && (e.key === "w" || e.key === "W")) {
+        e.preventDefault();
+        handlersRef.current.onCloseAll();
+        return;
+      }
+
       if (mod && !e.shiftKey && !e.altKey && (e.key === "w" || e.key === "W")) {
         e.preventDefault();
         handlersRef.current.onCloseTab();
         return;
       }
 
-      if (mod && e.shiftKey && (e.key === "t" || e.key === "T")) {
+      if (mod && e.shiftKey && !e.altKey && (e.key === "t" || e.key === "T")) {
         e.preventDefault();
         handlersRef.current.onReopenClosed();
+        return;
+      }
+
+      if (mod && e.shiftKey && !e.altKey && (e.key === "c" || e.key === "C")) {
+        e.preventDefault();
+        handlersRef.current.onCopyActivePath();
+        return;
+      }
+
+      if (mod && e.shiftKey && !e.altKey && (e.key === "r" || e.key === "R")) {
+        e.preventDefault();
+        handlersRef.current.onRevealActiveInFileManager();
         return;
       }
 

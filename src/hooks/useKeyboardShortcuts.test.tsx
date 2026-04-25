@@ -7,11 +7,15 @@ function makeHandlers() {
   return {
     onOpenDialog: vi.fn(),
     onCloseTab: vi.fn(),
+    onCloseOthers: vi.fn(),
+    onCloseAll: vi.fn(),
     onReopenClosed: vi.fn(),
     onNextTab: vi.fn(),
     onPrevTab: vi.fn(),
     onJumpToIndex: vi.fn(),
     onJumpToLast: vi.fn(),
+    onCopyActivePath: vi.fn(),
+    onRevealActiveInFileManager: vi.fn(),
     onShowHelp: vi.fn(),
     onEscape: vi.fn(),
   };
@@ -41,6 +45,46 @@ describe("useKeyboardShortcuts", () => {
       await userEvent.keyboard("{Meta>}w{/Meta}");
     });
     expect(h.onCloseTab).toHaveBeenCalled();
+    expect(h.onCloseOthers).not.toHaveBeenCalled();
+    expect(h.onCloseAll).not.toHaveBeenCalled();
+  });
+
+  it("Cmd+Alt+W fires onCloseOthers (and not onCloseTab)", async () => {
+    const h = makeHandlers();
+    renderHook(() => useKeyboardShortcuts(h));
+    await act(async () => {
+      await userEvent.keyboard("{Meta>}{Alt>}w{/Alt}{/Meta}");
+    });
+    expect(h.onCloseOthers).toHaveBeenCalledTimes(1);
+    expect(h.onCloseTab).not.toHaveBeenCalled();
+  });
+
+  it("Cmd+Shift+W fires onCloseAll (and not onCloseTab)", async () => {
+    const h = makeHandlers();
+    renderHook(() => useKeyboardShortcuts(h));
+    await act(async () => {
+      await userEvent.keyboard("{Meta>}{Shift>}w{/Shift}{/Meta}");
+    });
+    expect(h.onCloseAll).toHaveBeenCalledTimes(1);
+    expect(h.onCloseTab).not.toHaveBeenCalled();
+  });
+
+  it("Cmd+Shift+C fires onCopyActivePath", async () => {
+    const h = makeHandlers();
+    renderHook(() => useKeyboardShortcuts(h));
+    await act(async () => {
+      await userEvent.keyboard("{Meta>}{Shift>}c{/Shift}{/Meta}");
+    });
+    expect(h.onCopyActivePath).toHaveBeenCalled();
+  });
+
+  it("Cmd+Shift+R fires onRevealActiveInFileManager", async () => {
+    const h = makeHandlers();
+    renderHook(() => useKeyboardShortcuts(h));
+    await act(async () => {
+      await userEvent.keyboard("{Meta>}{Shift>}r{/Shift}{/Meta}");
+    });
+    expect(h.onRevealActiveInFileManager).toHaveBeenCalled();
   });
 
   it("Ctrl+Tab fires onNextTab, Ctrl+Shift+Tab fires onPrevTab", async () => {

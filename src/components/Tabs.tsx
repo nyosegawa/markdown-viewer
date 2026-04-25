@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Tab } from "@/hooks/useTabs";
+import { formatShortcut, isMac, type Shortcut, TAB_SHORTCUTS } from "@/lib/platform";
 
 // Min pixel distance before a pointerdown is promoted to a drag.
 const DRAG_THRESHOLD_PX = 4;
@@ -57,6 +58,8 @@ export function Tabs({
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
+  const mac = useMemo(() => isMac(), []);
+  const shortcutHint = useCallback((sc: Shortcut) => formatShortcut(sc, mac), [mac]);
   const [drag, setDrag] = useState<DragState | null>(null);
   // Mirror in a ref so document-level pointer listeners always see the
   // current value (closure capture makes setState-only variants stale).
@@ -322,7 +325,10 @@ export function Tabs({
                 closeMenu();
               }}
             >
-              Close tab
+              <span className="tab-context-label">Close tab</span>
+              <span className="tab-context-shortcut" aria-hidden="true">
+                {shortcutHint(TAB_SHORTCUTS.closeTab)}
+              </span>
             </button>
             <button
               type="button"
@@ -334,7 +340,10 @@ export function Tabs({
                 closeMenu();
               }}
             >
-              Close other tabs
+              <span className="tab-context-label">Close other tabs</span>
+              <span className="tab-context-shortcut" aria-hidden="true">
+                {shortcutHint(TAB_SHORTCUTS.closeOthers)}
+              </span>
             </button>
             <button
               type="button"
@@ -346,7 +355,7 @@ export function Tabs({
                 closeMenu();
               }}
             >
-              Close tabs to the right
+              <span className="tab-context-label">Close tabs to the right</span>
             </button>
             <button
               type="button"
@@ -357,7 +366,10 @@ export function Tabs({
                 closeMenu();
               }}
             >
-              Close all tabs
+              <span className="tab-context-label">Close all tabs</span>
+              <span className="tab-context-shortcut" aria-hidden="true">
+                {shortcutHint(TAB_SHORTCUTS.closeAll)}
+              </span>
             </button>
             <div className="tab-context-divider" />
             <button
@@ -369,7 +381,10 @@ export function Tabs({
                 closeMenu();
               }}
             >
-              Copy path
+              <span className="tab-context-label">Copy path</span>
+              <span className="tab-context-shortcut" aria-hidden="true">
+                {shortcutHint(TAB_SHORTCUTS.copyPath)}
+              </span>
             </button>
             <button
               type="button"
@@ -380,7 +395,10 @@ export function Tabs({
                 closeMenu();
               }}
             >
-              Show in file manager
+              <span className="tab-context-label">Show in file manager</span>
+              <span className="tab-context-shortcut" aria-hidden="true">
+                {shortcutHint(TAB_SHORTCUTS.revealInFileManager)}
+              </span>
             </button>
           </div>
         ) : null}
