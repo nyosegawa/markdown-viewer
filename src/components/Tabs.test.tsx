@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Tab } from "@/hooks/useTabs";
@@ -80,6 +80,53 @@ describe("Tabs", () => {
     const menu = await screen.findByTestId("tab-context-menu");
     expect(within(menu).getByRole("menuitem", { name: "Close tabs to the right" })).toBeDisabled();
     expect(within(menu).getByRole("menuitem", { name: "Close other tabs" })).not.toBeDisabled();
+  });
+
+  it("clamps the context menu inside the viewport when opened near the right/bottom edge", () => {
+    const props = baseProps();
+    const originalGetRect = HTMLElement.prototype.getBoundingClientRect;
+    // jsdom returns 0×0 for layout, which would defeat the clamp; pretend the
+    // menu has a real size so the math has something to bite on.
+    const menuWidth = 240;
+    const menuHeight = 220;
+    HTMLElement.prototype.getBoundingClientRect = function () {
+      if (this.classList.contains("tab-context-menu")) {
+        return {
+          x: 0,
+          y: 0,
+          left: 0,
+          top: 0,
+          right: menuWidth,
+          bottom: menuHeight,
+          width: menuWidth,
+          height: menuHeight,
+          toJSON() {},
+        } as DOMRect;
+      }
+      return originalGetRect.call(this);
+    };
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1000 });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 });
+
+    try {
+      render(<Tabs tabs={[makeTab("/a.md", "a")]} activeId="a" {...props} />);
+      const tab = screen.getByTestId("tab-0");
+      // Click near the bottom-right corner — without clamping this would
+      // place the menu past 1000×800.
+      fireEvent.contextMenu(tab, { clientX: 980, clientY: 780 });
+
+      const menu = screen.getByTestId("tab-context-menu") as HTMLElement;
+      const left = Number.parseFloat(menu.style.left);
+      const top = Number.parseFloat(menu.style.top);
+      const margin = 8;
+      expect(left + menuWidth).toBeLessThanOrEqual(window.innerWidth - margin);
+      expect(top + menuHeight).toBeLessThanOrEqual(window.innerHeight - margin);
+      expect(left).toBeGreaterThanOrEqual(margin);
+      expect(top).toBeGreaterThanOrEqual(margin);
+      expect(menu.style.visibility).toBe("visible");
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = originalGetRect;
+    }
   });
 
   it("Copy path / Show in file manager fire with the tab's path", async () => {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Tab } from "@/hooks/useTabs";
 
 // Min pixel distance before a pointerdown is promoted to a drag.
@@ -54,6 +54,7 @@ export function Tabs({
   onReorder,
 }: TabsProps) {
   const [menu, setMenu] = useState<MenuState | null>(null);
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
@@ -65,7 +66,33 @@ export function Tabs({
   // would re-activate the source tab; this flag swallows exactly one click.
   const suppressClickRef = useRef(false);
 
-  const closeMenu = useCallback(() => setMenu(null), []);
+  const closeMenu = useCallback(() => {
+    setMenu(null);
+    setMenuPos(null);
+  }, []);
+
+  // Clamp menu position into the viewport once we know the menu's measured
+  // size — opening at the raw click point causes overflow when the user
+  // right-clicks near the right or bottom edge.
+  useLayoutEffect(() => {
+    if (!menu) {
+      setMenuPos(null);
+      return;
+    }
+    const el = menuRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const width = rect.width || el.offsetWidth || 0;
+    const height = rect.height || el.offsetHeight || 0;
+    const margin = 8;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const maxX = Math.max(margin, vw - width - margin);
+    const maxY = Math.max(margin, vh - height - margin);
+    const x = Math.max(margin, Math.min(menu.x, maxX));
+    const y = Math.max(margin, Math.min(menu.y, maxY));
+    setMenuPos({ x, y });
+  }, [menu]);
 
   useEffect(() => {
     if (!menu) return;
@@ -278,7 +305,11 @@ export function Tabs({
           <div
             ref={menuRef}
             className="tab-context-menu"
-            style={{ left: menu.x, top: menu.y }}
+            style={{
+              left: menuPos?.x ?? menu.x,
+              top: menuPos?.y ?? menu.y,
+              visibility: menuPos ? "visible" : "hidden",
+            }}
             role="menu"
             data-testid="tab-context-menu"
           >
