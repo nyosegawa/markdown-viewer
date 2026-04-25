@@ -25,6 +25,7 @@ pub fn run() {
             commands::watch_file,
             commands::unwatch_file,
             commands::reveal_in_file_manager,
+            commands::path_meta,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

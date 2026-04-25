@@ -62,6 +62,47 @@ describe("Viewer", () => {
     );
   });
 
+  it("local link click forwards the raw href to onOpenLocalLink (basePath set)", async () => {
+    const onOpen = vi.fn();
+    const view = render(
+      <Viewer
+        source="[doc](./sub/x.md)\n[img](./pic.png)\n[ext](https://example.com)\n"
+        basePath="/repo/README.md"
+        onOpenLocalLink={onOpen}
+      />,
+    );
+    await screen.findByText((_, el) => {
+      if (!el || el.tagName.toLowerCase() !== "article") return false;
+      return el.textContent?.includes("Loading renderer") === false;
+    });
+
+    await userEvent.click(screen.getByRole("link", { name: "doc" }));
+    expect(onOpen).toHaveBeenCalledWith("./sub/x.md");
+
+    await userEvent.click(screen.getByRole("link", { name: "img" }));
+    expect(onOpen).toHaveBeenCalledWith("./pic.png");
+
+    // External http link is not a local link — the existing branch handles it.
+    onOpen.mockClear();
+    const openWindowSpy = vi.spyOn(window, "open").mockReturnValue(null);
+    await userEvent.click(screen.getByRole("link", { name: "ext" }));
+    await Promise.resolve();
+    expect(onOpen).not.toHaveBeenCalled();
+    expect(openWindowSpy).toHaveBeenCalled();
+    view.unmount();
+  });
+
+  it("local link click is a no-op when basePath is missing", async () => {
+    const onOpen = vi.fn();
+    render(<Viewer source="[doc](./sub/x.md)\n" onOpenLocalLink={onOpen} />);
+    await screen.findByText((_, el) => {
+      if (!el || el.tagName.toLowerCase() !== "article") return false;
+      return el.textContent?.includes("Loading renderer") === false;
+    });
+    await userEvent.click(screen.getByRole("link", { name: "doc" }));
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
   it("Cmd/Ctrl+F opens the search bar; Escape closes it", async () => {
     await renderViewer("# Hello\n");
     expect(screen.queryByTestId("search-input")).toBeNull();

@@ -46,14 +46,14 @@ export function useTabs() {
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  const openPath = useCallback(async (path: string) => {
-    if (!path) return;
+  const openPath = useCallback(async (path: string): Promise<string | null> => {
+    if (!path) return null;
 
     // If already open, just activate it.
     const existing = stateRef.current.tabs.find((t) => t.path === path);
     if (existing) {
       setState((prev) => ({ ...prev, activeId: existing.id }));
-      return;
+      return existing.id;
     }
 
     const id = genId();
@@ -85,6 +85,7 @@ export function useTabs() {
         ),
       }));
     }
+    return id;
   }, []);
 
   const activate = useCallback((id: string) => {

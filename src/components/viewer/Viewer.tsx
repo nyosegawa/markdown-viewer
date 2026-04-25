@@ -1,4 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { parseLocalLinkHref } from "@/lib/links";
+import { consumePendingAnchor } from "@/lib/pending-anchor";
 import { getSrcOffset, setSrcOffset } from "@/lib/scroll-memory";
 import { isTauri } from "@/lib/tauri";
 import { SearchBar } from "./SearchBar";
@@ -14,6 +16,14 @@ export interface ViewerProps {
    *  the reader's place instead of remounting the Viewer (which re-instantiates
    *  the Shiki highlighter and costs hundreds of ms). */
   tabId?: string;
+  /** Active tab's filesystem path. When provided, local link clicks inside the
+   *  rendered body are intercepted and forwarded to `onOpenLocalLink` so they
+   *  can be opened in-app (markdown) or via the OS shell (everything else). */
+  basePath?: string;
+  /** Receives raw hrefs of local links that were not handled inline (e.g. not
+   *  `#anchor`, not `http(s):`/`mailto:`). The host App resolves and routes
+   *  them. */
+  onOpenLocalLink?: (rawHref: string) => void;
 }
 
 function decodeHash(hash: string): string {
@@ -109,8 +119,18 @@ export function scrollToSourceOffset(
   return true;
 }
 
-export function Viewer({ source, tabId }: ViewerProps) {
+export function Viewer({ source, tabId, basePath, onOpenLocalLink }: ViewerProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Stash these in refs so the click handler — which is bound exactly once
+  // for the lifetime of the scroll container — always sees the latest values.
+  const basePathRef = useRef<string | undefined>(basePath);
+  useEffect(() => {
+    basePathRef.current = basePath;
+  }, [basePath]);
+  const onOpenLocalLinkRef = useRef<typeof onOpenLocalLink>(onOpenLocalLink);
+  useEffect(() => {
+    onOpenLocalLinkRef.current = onOpenLocalLink;
+  }, [onOpenLocalLink]);
   const [searchOpen, setSearchOpen] = useState(false);
   // Per-tab scroll positions. Kept in a ref so writes don't trigger rerenders.
   const scrollByTabRef = useRef<Map<string, number>>(new Map());
@@ -205,11 +225,51 @@ export function Viewer({ source, tabId }: ViewerProps) {
       if (/^(https?:|mailto:)/i.test(href)) {
         e.preventDefault();
         void openExternal(href);
+        return;
+      }
+
+      // Local link (relative path, absolute path, or `file://`). Hand off to
+      // the host so it can decide between "open as a new markdown tab" and
+      // "open with the OS default app".
+      const local = parseLocalLinkHref(href);
+      if (local && basePathRef.current && onOpenLocalLinkRef.current) {
+        e.preventDefault();
+        onOpenLocalLinkRef.current(href);
       }
     }
     root.addEventListener("click", onClick);
     return () => root.removeEventListener("click", onClick);
   }, []);
+
+  // Pending-anchor handoff: when App stashed an anchor for this tab (because
+  // a click on a local `.md#sec` link triggered openPath), scroll to the
+  // matching id once the markdown body is in the DOM. Runs alongside (and
+  // wins against) the source-offset restore — explicit anchor target beats a
+  // remembered scroll position.
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root || !tabId) return;
+    const pending = consumePendingAnchor(tabId);
+    if (!pending) return;
+    const anchor: string = pending;
+    function scrollToAnchor(): boolean {
+      if (!root) return false;
+      const doc = root.ownerDocument;
+      if (!doc) return false;
+      const target =
+        (doc.getElementById(anchor) as HTMLElement | null) ??
+        (root.querySelector(`#${CSS.escape(anchor)}`) as HTMLElement | null);
+      if (!target) return false;
+      target.scrollIntoView({ behavior: "auto", block: "start" });
+      return true;
+    }
+    if (scrollToAnchor()) return;
+    const observer = new MutationObserver(() => {
+      if (scrollToAnchor()) observer.disconnect();
+    });
+    observer.observe(root, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [tabId]);
 
   // Copy-as-markdown: rewrite clipboard text/plain with the underlying source.
   useEffect(() => {

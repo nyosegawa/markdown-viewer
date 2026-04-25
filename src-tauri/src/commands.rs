@@ -39,6 +39,28 @@ pub fn unwatch_file(
     }
 }
 
+#[derive(serde::Serialize)]
+pub struct PathMeta {
+    pub exists: bool,
+    pub is_dir: bool,
+}
+
+#[tauri::command]
+pub async fn path_meta(path: String) -> Result<PathMeta, String> {
+    let p = PathBuf::from(&path);
+    match tokio::fs::metadata(&p).await {
+        Ok(md) => Ok(PathMeta {
+            exists: true,
+            is_dir: md.is_dir(),
+        }),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(PathMeta {
+            exists: false,
+            is_dir: false,
+        }),
+        Err(e) => Err(format!("metadata({}) failed: {e}", p.display())),
+    }
+}
+
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 pub fn reveal_in_file_manager(path: String) -> Result<(), String> {
@@ -125,6 +147,39 @@ mod tests {
             .await
             .expect("read ok");
         assert_eq!(out, text);
+    }
+
+    #[tokio::test]
+    async fn path_meta_reports_existing_file() {
+        let dir = tempdir().expect("tempdir");
+        let path = dir.path().join("file.md");
+        tokio::fs::write(&path, b"x").await.expect("write");
+        let meta = path_meta(path.to_string_lossy().into_owned())
+            .await
+            .expect("ok");
+        assert!(meta.exists);
+        assert!(!meta.is_dir);
+    }
+
+    #[tokio::test]
+    async fn path_meta_reports_existing_directory() {
+        let dir = tempdir().expect("tempdir");
+        let meta = path_meta(dir.path().to_string_lossy().into_owned())
+            .await
+            .expect("ok");
+        assert!(meta.exists);
+        assert!(meta.is_dir);
+    }
+
+    #[tokio::test]
+    async fn path_meta_reports_missing_path() {
+        let dir = tempdir().expect("tempdir");
+        let missing = dir.path().join("nope");
+        let meta = path_meta(missing.to_string_lossy().into_owned())
+            .await
+            .expect("ok");
+        assert!(!meta.exists);
+        assert!(!meta.is_dir);
     }
 
     #[test]

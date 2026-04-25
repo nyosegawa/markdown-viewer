@@ -10,8 +10,18 @@ import { useRecentFiles } from "@/hooks/useRecentFiles";
 import { readStoredTabs, useTabPersistence } from "@/hooks/useTabPersistence";
 import { useTabs } from "@/hooks/useTabs";
 import { useTheme } from "@/hooks/useTheme";
+import { isMarkdownPath, parseLocalLinkHref } from "@/lib/links";
+import { setPendingAnchor } from "@/lib/pending-anchor";
 import { getSrcOffset } from "@/lib/scroll-memory";
-import { getCliPath, invokeRevealInFileManager, listenOpenFile, openFileDialog } from "@/lib/tauri";
+import {
+  getCliPath,
+  invokeOpenWithSystem,
+  invokePathMeta,
+  invokeRevealInFileManager,
+  listenOpenFile,
+  openFileDialog,
+  resolveAgainstBase,
+} from "@/lib/tauri";
 
 function App() {
   const { theme, toggleTheme } = useTheme();
@@ -69,6 +79,59 @@ function App() {
       console.warn("reveal failed", err);
     });
   }, []);
+
+  // Click on a local link inside the rendered markdown body. We resolve it
+  // against the active tab's directory and route based on what's there:
+  //   - missing       → silently no-op (broken doc links shouldn't error-pop)
+  //   - directory     → OS file manager (Finder / Explorer / xdg-open)
+  //   - .md/.markdown → open as a new tab in this app, with optional fragment
+  //   - everything    → OS default app (PDF reader, image viewer, etc.)
+  const handleOpenLocalLink = useCallback(
+    async (rawHref: string, baseFilePath: string) => {
+      const parsed = parseLocalLinkHref(rawHref);
+      if (!parsed) return;
+      let absolute: string;
+      try {
+        absolute = await resolveAgainstBase(baseFilePath, parsed.path);
+      } catch (err) {
+        console.warn("resolve link path failed", err);
+        return;
+      }
+      let meta: { exists: boolean; is_dir: boolean };
+      try {
+        meta = await invokePathMeta(absolute);
+      } catch (err) {
+        console.warn("path_meta failed", err);
+        return;
+      }
+      if (!meta.exists) return;
+
+      if (meta.is_dir) {
+        try {
+          await invokeOpenWithSystem(absolute);
+        } catch (err) {
+          console.warn("openPath (dir) failed", err);
+        }
+        return;
+      }
+
+      if (isMarkdownPath(absolute)) {
+        const newTabId = await openPath(absolute);
+        addRecent(absolute);
+        if (newTabId && parsed.fragment) {
+          setPendingAnchor(newTabId, parsed.fragment);
+        }
+        return;
+      }
+
+      try {
+        await invokeOpenWithSystem(absolute);
+      } catch (err) {
+        console.warn("openPath failed", err);
+      }
+    },
+    [openPath, addRecent],
+  );
 
   // Restore persisted tabs at startup (runs once, before CLI/open-file listeners
   // are allowed to add anything — those paths go into the restored set too).
@@ -256,7 +319,12 @@ function App() {
               tabId={activeTab.id}
             />
           ) : (
-            <Viewer source={activeTab.source} tabId={activeTab.id} />
+            <Viewer
+              source={activeTab.source}
+              tabId={activeTab.id}
+              basePath={activeTab.path}
+              onOpenLocalLink={(href) => void handleOpenLocalLink(href, activeTab.path)}
+            />
           )
         ) : null}
       </main>

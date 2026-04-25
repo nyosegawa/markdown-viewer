@@ -38,6 +38,35 @@ export async function invokeRevealInFileManager(path: string): Promise<void> {
   await invoke("reveal_in_file_manager", { path });
 }
 
+export interface PathMeta {
+  exists: boolean;
+  is_dir: boolean;
+}
+
+export async function invokePathMeta(path: string): Promise<PathMeta> {
+  if (!isTauri()) return { exists: false, is_dir: false };
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<PathMeta>("path_meta", { path });
+}
+
+export async function invokeOpenWithSystem(path: string): Promise<void> {
+  if (!isTauri()) return;
+  const { openPath } = await import("@tauri-apps/plugin-opener");
+  await openPath(path);
+}
+
+/**
+ * Resolve `relative` against the directory containing `basePath`, using the
+ * host OS's path semantics (separator, case rules). When `relative` is already
+ * absolute, returns it unchanged.
+ */
+export async function resolveAgainstBase(basePath: string, relative: string): Promise<string> {
+  if (!isTauri()) return relative;
+  const { dirname, resolve } = await import("@tauri-apps/api/path");
+  const dir = await dirname(basePath);
+  return resolve(dir, relative);
+}
+
 export async function listenFileChanged(handler: (path: string) => void): Promise<UnlistenFn> {
   if (!isTauri()) return () => undefined;
   const { listen } = await import("@tauri-apps/api/event");
