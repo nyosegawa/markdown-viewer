@@ -81,19 +81,18 @@ export function Editor({ value, onChange, theme, initialSourceOffset, tabId }: E
     }
 
     // Mirror the viewer's scroll-memory protocol: report the topmost visible
-    // line's source offset so flipping back to view mode can restore it. We
-    // throttle with rAF — CodeMirror fires scroll on every wheel notch.
+    // line's source offset so flipping back to view mode can restore it.
+    // `lineBlockAtHeight(scrollTop)` resolves the block at the top of the
+    // viewport in document-layout coords; this is more reliable than
+    // `posAtCoords` (which can return null near padding/gutters during
+    // wheel events). rAF-throttled — CodeMirror fires scroll per notch.
     let rafId: number | null = null;
     const sample = () => {
       rafId = null;
       const id = tabIdRef.current;
       if (!id) return;
-      const rect = view.dom.getBoundingClientRect();
-      // A few px below the top edge dodges any decoration/border stacking.
-      const pos = view.posAtCoords({ x: rect.left + 16, y: rect.top + 4 });
-      if (pos === null) return;
-      const line = view.state.doc.lineAt(pos);
-      setSrcOffset(id, line.from);
+      const block = view.lineBlockAtHeight(view.scrollDOM.scrollTop);
+      setSrcOffset(id, block.from);
     };
     const onScroll = () => {
       if (rafId !== null) return;
