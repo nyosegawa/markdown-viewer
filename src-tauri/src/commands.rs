@@ -3,7 +3,7 @@ use std::sync::Mutex;
 
 use tauri::{AppHandle, State};
 
-use crate::pending_open::PendingOpenFiles;
+use crate::pending_open;
 use crate::watcher::WatcherState;
 
 #[tauri::command]
@@ -69,9 +69,8 @@ pub async fn path_meta(path: String) -> Result<PathMeta, String> {
 /// Always present so the frontend doesn't have to branch by platform; on
 /// non-macOS targets the buffer is simply never populated.
 #[tauri::command]
-#[allow(clippy::needless_pass_by_value)]
-pub fn drain_pending_open_files(state: State<'_, PendingOpenFiles>) -> Vec<String> {
-    state
+pub fn drain_pending_open_files() -> Vec<String> {
+    pending_open::shared()
         .drain()
         .into_iter()
         .map(|p| p.to_string_lossy().into_owned())

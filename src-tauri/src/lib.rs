@@ -4,7 +4,6 @@ mod watcher;
 
 use std::sync::Mutex;
 
-use pending_open::PendingOpenFiles;
 use tauri::{AppHandle, Manager, RunEvent};
 use watcher::WatcherState;
 
@@ -20,7 +19,6 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             app.manage(Mutex::new(WatcherState::default()));
-            app.manage(PendingOpenFiles::default());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -43,13 +41,13 @@ fn on_run_event(app: &AppHandle, event: RunEvent) {
     if let RunEvent::Opened { urls } = event {
         for url in urls {
             if let Ok(path) = url.to_file_path() {
-                // Buffer for cold-start drain. The synchronous emit below
-                // reaches no listeners on a fresh launch — the React tree
-                // hasn't mounted yet — so the frontend pulls these via
-                // `drain_pending_open_files` once tab restoration is done.
-                if let Some(buffer) = app.try_state::<PendingOpenFiles>() {
-                    buffer.push(path.clone());
-                }
+                // Buffer the path before emitting. `pending_open::shared()`
+                // is a process-static so it works regardless of whether
+                // Tauri's `setup` (where managed state is registered) has
+                // completed — on cold launch the run loop starts pumping
+                // `RunEvent::Opened` immediately and `app.try_state` was
+                // returning `None`, silently dropping the path.
+                pending_open::shared().push(path.clone());
                 let payload = path.to_string_lossy().into_owned();
                 if let Err(err) = app.emit(OPEN_FILE_EVENT, payload) {
                     eprintln!("failed to emit open-file event: {err}");
