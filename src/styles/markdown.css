@@ -238,10 +238,25 @@
   border: 1px solid var(--color-surface-border-dark);
 }
 
-/* KaTeX */
+/* KaTeX
+ *
+ * `useFitDisplayMath` shrinks the wrapper's font-size so most formulas no
+ * longer overflow the article gutter. We still keep `overflow-x: auto` as a
+ * fallback for math wider than the auto-fit floor (0.6em), but hide the
+ * scrollbar itself: macOS WebKit honours the OS "Always show scrollbars"
+ * preference and would otherwise paint a permanent bar under every formula
+ * — even a one-character one — once a single block needed scrolling. The
+ * content remains scrollable via trackpad swipe / shift+wheel. */
 .markdown-body .katex-display {
   margin: 1rem 0;
   overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.markdown-body .katex-display::-webkit-scrollbar {
+  display: none;
 }
 
 [data-theme="dark"] .markdown-body .katex {

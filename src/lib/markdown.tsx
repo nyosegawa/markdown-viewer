@@ -1,5 +1,5 @@
 import type { Schema } from "hast-util-sanitize";
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
@@ -8,6 +8,7 @@ import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import type { PluggableList } from "unified";
+import { useFitDisplayMath } from "../hooks/useFitDisplayMath";
 import { extractFrontMatter, type FrontMatterMatch } from "./front-matter";
 import rehypeSourcePosition from "./rehype-source-position";
 
@@ -197,6 +198,8 @@ function FrontMatterCard({ match }: { match: FrontMatterMatch }) {
 function MarkdownRendererInner({ source }: MarkdownRendererProps) {
   const [rehypePlugins, setRehypePlugins] = useState<PluggableList | null>(null);
   const frontMatter = useMemo(() => extractFrontMatter(source), [source]);
+  const articleRef = useRef<HTMLElement>(null);
+  useFitDisplayMath(articleRef);
 
   useEffect(() => {
     let canceled = false;
@@ -222,7 +225,7 @@ function MarkdownRendererInner({ source }: MarkdownRendererProps) {
 
   if (!rehypePlugins) {
     return (
-      <article className="markdown-body" data-testid="markdown-body">
+      <article ref={articleRef} className="markdown-body" data-testid="markdown-body">
         {frontMatter ? <FrontMatterCard match={frontMatter} /> : null}
         <p>Loading…</p>
       </article>
@@ -230,7 +233,7 @@ function MarkdownRendererInner({ source }: MarkdownRendererProps) {
   }
 
   return (
-    <article className="markdown-body" data-testid="markdown-body">
+    <article ref={articleRef} className="markdown-body" data-testid="markdown-body">
       {frontMatter ? <FrontMatterCard match={frontMatter} /> : null}
       <ReactMarkdown remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>
         {source}
@@ -247,8 +250,10 @@ export const MarkdownRenderer = memo(MarkdownRendererInner);
  */
 export function SyncMarkdownRenderer({ source }: MarkdownRendererProps) {
   const frontMatter = extractFrontMatter(source);
+  const articleRef = useRef<HTMLElement>(null);
+  useFitDisplayMath(articleRef);
   return (
-    <article className="markdown-body" data-testid="markdown-body">
+    <article ref={articleRef} className="markdown-body" data-testid="markdown-body">
       {frontMatter ? <FrontMatterCard match={frontMatter} /> : null}
       <ReactMarkdown
         remarkPlugins={remarkPlugins}
