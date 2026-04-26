@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  drainPendingOpenFiles,
   getCliPath,
   invokeReadMarkdown,
   invokeRevealInFileManager,
@@ -53,6 +54,14 @@ describe("lib/tauri stubs in non-Tauri env", () => {
   it("openFileDialog / getCliPath resolve to null", async () => {
     await expect(openFileDialog()).resolves.toBeNull();
     await expect(getCliPath()).resolves.toBeNull();
+  });
+
+  it("drainPendingOpenFiles resolves to an empty array outside Tauri", async () => {
+    // The cold-start buffer only ever populates from Apple Events on a
+    // packaged macOS build. In tests there's no Tauri runtime, so the
+    // wrapper must short-circuit rather than throw — App.tsx awaits this
+    // unconditionally on every startup.
+    await expect(drainPendingOpenFiles()).resolves.toEqual([]);
   });
 
   it("setNativeTheme is a silent no-op", async () => {

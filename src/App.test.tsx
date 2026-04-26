@@ -12,6 +12,7 @@ const tauriMocks = vi.hoisted(() => ({
   listenDragDrop: vi.fn(async () => () => {}),
   openFileDialog: vi.fn(async () => null as string | null),
   getCliPath: vi.fn(async () => null as string | null),
+  drainPendingOpenFiles: vi.fn(async () => [] as string[]),
   setNativeTheme: vi.fn(async () => undefined),
 }));
 
@@ -32,6 +33,7 @@ describe("App", () => {
     });
     tauriMocks.openFileDialog.mockResolvedValue(null);
     tauriMocks.getCliPath.mockResolvedValue(null);
+    tauriMocks.drainPendingOpenFiles.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -67,6 +69,25 @@ describe("App", () => {
     const heading = await screen.findByRole("heading", { level: 1 });
     expect(heading).toHaveTextContent("From disk");
     expect(screen.getByTestId("title").textContent).toBe("readme.md");
+  });
+
+  it("opens any path stashed by Apple Events before the listener was wired up", async () => {
+    // Simulates a cold-launch double-click: Tauri buffers the path on the
+    // Rust side because `RunEvent::Opened` fires before the React tree
+    // mounts. Once tab restoration finishes, App.tsx must drain the buffer
+    // and open every path through the same handler the dialog uses.
+    tauriMocks.drainPendingOpenFiles.mockResolvedValueOnce(["/tmp/cold-launched.md"]);
+    tauriMocks.invokeReadMarkdown.mockResolvedValueOnce("# Cold launched\n");
+
+    render(<App />);
+
+    // The empty state's "Markdown Viewer" h1 paints first, so query by name
+    // rather than role+level — we want the h1 that the drained file produced.
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Cold launched" }),
+    ).toBeInTheDocument();
+    expect(tauriMocks.drainPendingOpenFiles).toHaveBeenCalled();
+    expect(tauriMocks.invokeReadMarkdown).toHaveBeenCalledWith("/tmp/cold-launched.md");
   });
 
   it("Escape in edit mode returns to view mode", async () => {

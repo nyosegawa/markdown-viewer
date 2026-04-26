@@ -14,6 +14,7 @@ import { isMarkdownPath, parseLocalLinkHref } from "@/lib/links";
 import { setPendingAnchor } from "@/lib/pending-anchor";
 import { getSrcOffset } from "@/lib/scroll-memory";
 import {
+  drainPendingOpenFiles,
   getCliPath,
   invokeOpenWithSystem,
   invokePathMeta,
@@ -161,6 +162,9 @@ function App() {
   }, [openPath, activateIndex]);
 
   // Once restoration is done, honour CLI path / macOS open-file events.
+  // The pending-open buffer covers the cold-start case where Apple Events
+  // fired before our `listenOpenFile` subscription existed; the live
+  // listener (next effect) keeps handling drag-from-Finder while running.
   useEffect(() => {
     if (!restored) return;
     let cancelled = false;
@@ -169,6 +173,14 @@ function App() {
         if (!cancelled && path) void handleOpenPath(path);
       })
       .catch((err) => console.warn("cli path lookup failed", err));
+    drainPendingOpenFiles()
+      .then(async (paths) => {
+        for (const p of paths) {
+          if (cancelled) return;
+          await handleOpenPath(p);
+        }
+      })
+      .catch((err) => console.warn("drain pending open-files failed", err));
     return () => {
       cancelled = true;
     };

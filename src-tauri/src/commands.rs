@@ -3,6 +3,7 @@ use std::sync::Mutex;
 
 use tauri::{AppHandle, State};
 
+use crate::pending_open::PendingOpenFiles;
 use crate::watcher::WatcherState;
 
 #[tauri::command]
@@ -59,6 +60,22 @@ pub async fn path_meta(path: String) -> Result<PathMeta, String> {
         }),
         Err(e) => Err(format!("metadata({}) failed: {e}", p.display())),
     }
+}
+
+/// Returns and clears any filesystem paths the OS handed us via Apple
+/// Events before the frontend's `open-file` listener was wired up. The
+/// frontend calls this once on startup, after tab restoration, to recover
+/// files passed to a cold-launched `open foo.md` / Finder double-click.
+/// Always present so the frontend doesn't have to branch by platform; on
+/// non-macOS targets the buffer is simply never populated.
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn drain_pending_open_files(state: State<'_, PendingOpenFiles>) -> Vec<String> {
+    state
+        .drain()
+        .into_iter()
+        .map(|p| p.to_string_lossy().into_owned())
+        .collect()
 }
 
 #[tauri::command]

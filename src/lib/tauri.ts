@@ -83,6 +83,24 @@ export async function listenOpenFile(handler: (path: string) => void): Promise<U
   });
 }
 
+/**
+ * Pulls any paths the OS dispatched to us via Apple Events (`open foo.md`,
+ * Finder double-click) before the frontend was ready to receive `open-file`.
+ * On cold launch the React tree mounts after `RunEvent::Opened` has already
+ * fired, so the synchronous emit lands on zero listeners — the Rust side
+ * also stashes each path in a buffer that this command drains.
+ */
+export async function drainPendingOpenFiles(): Promise<string[]> {
+  if (!isTauri()) return [];
+  const { invoke } = await import("@tauri-apps/api/core");
+  try {
+    return await invoke<string[]>("drain_pending_open_files");
+  } catch (err) {
+    console.warn("drain_pending_open_files failed", err);
+    return [];
+  }
+}
+
 export async function openFileDialog(): Promise<string | null> {
   if (!isTauri()) return null;
   const { open } = await import("@tauri-apps/plugin-dialog");

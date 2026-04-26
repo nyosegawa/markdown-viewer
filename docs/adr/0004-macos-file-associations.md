@@ -12,6 +12,7 @@ Users expect to double-click a `.md` in Finder (or run `open foo.md`) and land i
 1. `tauri.conf.json → bundle.fileAssociations` declares `.md` / `.markdown` / `.mdx` as `Viewer` associations with `text/markdown` MIME, so the tauri-cli bundler writes `CFBundleDocumentTypes` into the generated `Info.plist`.
 2. `src-tauri/src/lib.rs` switches from the single-call `.run(generate_context!())` form to `.build(...)` + `.run(|app, event| ...)` so we can pattern-match `RunEvent::Opened { urls }`, convert each URL to a filesystem path, and emit it to the frontend as the `open-file` event.
 3. The frontend (`App.tsx` → `listenOpenFile`) subscribes to `open-file` and feeds the path through the same `handleOpenPath` flow used by drag-drop / dialog / CLI, so all four entry points converge on a single code path.
+4. Cold launch fires `RunEvent::Opened` before the React tree mounts, so the synchronous emit reaches no listeners. We additionally buffer every URL in a managed `PendingOpenFiles` (`src-tauri/src/pending_open.rs`); after tab restoration the frontend invokes `drain_pending_open_files` and re-runs `handleOpenPath` for each entry. The live `listen("open-file")` subscription continues to handle hot-running double-clicks without going through the buffer.
 
 ## Consequences
 
