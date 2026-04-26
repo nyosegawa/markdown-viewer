@@ -21,6 +21,11 @@ pub struct PendingOpenFiles {
 }
 
 impl PendingOpenFiles {
+    // Only called from the macOS/iOS `RunEvent::Opened` branch in `lib.rs`,
+    // but exercised by tests on every platform — silence dead-code on
+    // non-Apple lib builds rather than gate the method behind a cfg chain
+    // that would also have to wrap the call site.
+    #[cfg_attr(not(any(target_os = "macos", target_os = "ios")), allow(dead_code))]
     pub fn push(&self, path: PathBuf) {
         if let Ok(mut guard) = self.paths.lock() {
             guard.push(path);
@@ -82,8 +87,9 @@ mod tests {
 
     #[test]
     fn shared_returns_the_same_instance_across_calls() {
-        let a = shared() as *const PendingOpenFiles;
-        let b = shared() as *const PendingOpenFiles;
-        assert_eq!(a, b);
+        // `OnceLock::get_or_init` must hand out the same reference every
+        // call — otherwise `RunEvent::Opened` would push into one buffer
+        // while the Tauri command drained a different one.
+        assert!(std::ptr::eq(shared(), shared()));
     }
 }
