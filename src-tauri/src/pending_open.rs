@@ -17,6 +17,12 @@ pub struct PendingOpenFiles {
 }
 
 impl PendingOpenFiles {
+    // Only called from the macOS/iOS `RunEvent::Opened` branch in `lib.rs`,
+    // but exercised by the tests in this module on every platform — so we
+    // silence dead-code on non-Apple lib builds rather than gate the method
+    // behind a `cfg(any(target_os = "macos", target_os = "ios", test))`
+    // chain that would also leak into the call site.
+    #[cfg_attr(not(any(target_os = "macos", target_os = "ios")), allow(dead_code))]
     pub fn push(&self, path: PathBuf) {
         if let Ok(mut guard) = self.paths.lock() {
             guard.push(path);
