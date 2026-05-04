@@ -166,6 +166,18 @@ const loadRehype = async (): Promise<PluggableList> => {
   ] satisfies PluggableList;
 };
 
+let rehypePluginsCache: PluggableList | null = null;
+let rehypePluginsPromise: Promise<PluggableList> | null = null;
+
+function getRehypePlugins(): Promise<PluggableList> {
+  if (rehypePluginsCache) return Promise.resolve(rehypePluginsCache);
+  rehypePluginsPromise ??= loadRehype().then((plugins) => {
+    rehypePluginsCache = plugins;
+    return plugins;
+  });
+  return rehypePluginsPromise;
+}
+
 export interface MarkdownRendererProps {
   source: string;
 }
@@ -203,7 +215,7 @@ function MarkdownRendererInner({ source }: MarkdownRendererProps) {
 
   useEffect(() => {
     let canceled = false;
-    loadRehype()
+    getRehypePlugins()
       .then((plugins) => {
         if (!canceled) setRehypePlugins(plugins);
       })

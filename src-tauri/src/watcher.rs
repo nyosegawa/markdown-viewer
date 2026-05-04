@@ -15,6 +15,7 @@ pub const FILE_CHANGED_EVENT: &str = "file-changed";
 #[derive(Debug, Clone, Serialize)]
 pub struct FileChangedPayload {
     pub path: String,
+    pub canonical_path: String,
 }
 
 #[derive(Default)]
@@ -27,7 +28,12 @@ struct WatcherHandle {
 }
 
 impl WatcherState {
-    pub fn watch(&mut self, app: &AppHandle, path: &Path) -> Result<(), String> {
+    pub fn watch(
+        &mut self,
+        app: &AppHandle,
+        path: &Path,
+        display_path: String,
+    ) -> Result<(), String> {
         let canonical = path
             .canonicalize()
             .map_err(|e| format!("failed to resolve path: {e}"))?;
@@ -39,6 +45,7 @@ impl WatcherState {
         let (tx, rx) = mpsc::channel::<notify::Result<notify::Event>>();
         let watch_target = parent_dir(&canonical)?;
         let emit_path = canonical.clone();
+        let canonical_path = canonical.to_string_lossy().into_owned();
 
         let mut watcher = notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
             let _ = tx.send(res);
@@ -63,7 +70,8 @@ impl WatcherState {
                 thread::sleep(Duration::from_millis(20));
                 while rx.try_recv().is_ok() {}
                 let payload = FileChangedPayload {
-                    path: emit_path.to_string_lossy().into_owned(),
+                    path: display_path.clone(),
+                    canonical_path: canonical_path.clone(),
                 };
                 if let Err(err) = app_for_thread.emit(FILE_CHANGED_EVENT, payload) {
                     eprintln!("failed to emit file-changed: {err}");

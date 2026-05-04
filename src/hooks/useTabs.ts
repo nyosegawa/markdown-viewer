@@ -291,8 +291,10 @@ export function useTabs() {
   useEffect(() => {
     let active = true;
     let unlisten: (() => void) | null = null;
-    listenFileChanged((changedPath) => {
-      const matches = stateRef.current.tabs.filter((t) => t.path === changedPath);
+    listenFileChanged((changedPath, canonicalPath) => {
+      const matches = stateRef.current.tabs.filter(
+        (t) => t.path === changedPath || t.path === canonicalPath,
+      );
       if (matches.length === 0) return;
       for (const t of matches) {
         void invokeReadMarkdown(t.path).then((source) => {

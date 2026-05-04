@@ -29,7 +29,7 @@ function dirname(path: string): string {
   return parts.join("/");
 }
 
-function FolderOpenIcon() {
+function FileOpenIcon() {
   return (
     <svg
       className="toolbar-btn-icon"
@@ -41,8 +41,10 @@ function FolderOpenIcon() {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d="M3 7.5V6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v1" />
-      <path d="M3 9.5h18l-2 8a2 2 0 0 1-2 1.5H7a2 2 0 0 1-2-1.5l-2-8z" />
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5" />
+      <path d="M10 14h7" />
+      <path d="M14 11l3 3-3 3" />
     </svg>
   );
 }
@@ -170,7 +172,7 @@ export function Toolbar({
           title="Open file"
           data-testid="open-btn"
         >
-          <FolderOpenIcon />
+          <FileOpenIcon />
         </button>
 
         <div className="recent-menu" ref={menuRef}>

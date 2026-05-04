@@ -22,7 +22,7 @@ pub fn watch_file(
     path: String,
 ) -> Result<(), String> {
     let mut guard = state.lock().map_err(|e| e.to_string())?;
-    guard.watch(&app, Path::new(&path))
+    guard.watch(&app, Path::new(&path), path.clone())
 }
 
 #[tauri::command]

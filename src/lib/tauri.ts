@@ -67,11 +67,13 @@ export async function resolveAgainstBase(basePath: string, relative: string): Pr
   return resolve(dir, relative);
 }
 
-export async function listenFileChanged(handler: (path: string) => void): Promise<UnlistenFn> {
+export async function listenFileChanged(
+  handler: (path: string, canonicalPath?: string) => void,
+): Promise<UnlistenFn> {
   if (!isTauri()) return () => undefined;
   const { listen } = await import("@tauri-apps/api/event");
-  return listen<{ path: string }>("file-changed", (event) => {
-    handler(event.payload.path);
+  return listen<{ path: string; canonical_path?: string }>("file-changed", (event) => {
+    handler(event.payload.path, event.payload.canonical_path);
   });
 }
 

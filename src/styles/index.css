@@ -288,6 +288,8 @@ body {
   width: 72px;
   height: 72px;
   opacity: 0.92;
+  border-radius: 22%;
+  background: #fff;
   filter: drop-shadow(0 8px 24px rgba(9, 105, 218, 0.12));
 }
 

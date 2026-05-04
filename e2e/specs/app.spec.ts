@@ -13,12 +13,14 @@ describe("markdown-viewer", () => {
   it("toggles edit mode when the Edit button is clicked", async () => {
     const modeBtn = await $('[data-testid="mode-btn"]');
     await modeBtn.waitForExist();
-    await expect(modeBtn).toHaveText("Edit");
+    await expect(modeBtn).toHaveAttribute("aria-label", "Switch to edit mode");
+    await expect(modeBtn).toHaveAttribute("aria-pressed", "false");
 
     await modeBtn.click();
     const editorHost = await $('[data-testid="editor-host"]');
     await editorHost.waitForExist({ timeout: 20_000 });
-    await expect(modeBtn).toHaveText("Viewing");
+    await expect(modeBtn).toHaveAttribute("aria-label", "Switch to view mode");
+    await expect(modeBtn).toHaveAttribute("aria-pressed", "true");
   });
 
   it("swaps the data-theme attribute when the theme button is clicked", async () => {

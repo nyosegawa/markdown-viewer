@@ -314,4 +314,28 @@ describe("useTabs", () => {
     await waitFor(() => expect(result.current.tabs[0]?.source).toBe("a2"));
     expect(result.current.tabs[1]?.source).toBe("b1");
   });
+
+  it("file-changed also matches a canonical path alias", async () => {
+    mocks.invokeReadMarkdown.mockResolvedValueOnce("a1");
+    let registered: ((path: string, canonicalPath?: string) => void) | null = null;
+    mocks.listenFileChanged.mockImplementation(async (handler) => {
+      registered = handler;
+      return () => {};
+    });
+
+    const { result } = renderHook(() => useTabs());
+    await waitFor(() => expect(registered).not.toBeNull());
+
+    await act(async () => {
+      await result.current.openPath("/linked/a.md");
+    });
+
+    mocks.invokeReadMarkdown.mockResolvedValueOnce("a2");
+    await act(async () => {
+      registered?.("/private/tmp/a.md", "/linked/a.md");
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(result.current.tabs[0]?.source).toBe("a2"));
+  });
 });
