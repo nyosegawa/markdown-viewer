@@ -16,6 +16,41 @@ pub async fn read_markdown(path: String) -> Result<String, String> {
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
+pub async fn rename_markdown(path: String, filename_stem: String) -> Result<String, String> {
+    let from = PathBuf::from(&path);
+    let stem = filename_stem.trim();
+    if stem.is_empty() {
+        return Err("filename cannot be empty".to_string());
+    }
+    if stem.contains(['/', '\\', '\0']) {
+        return Err("filename cannot contain path separators".to_string());
+    }
+
+    let parent = from
+        .parent()
+        .ok_or_else(|| "path has no parent directory".to_string())?;
+    let ext = from.extension().and_then(|e| e.to_str()).unwrap_or("");
+    let next_name = if ext.is_empty() {
+        stem.to_string()
+    } else {
+        format!("{stem}.{ext}")
+    };
+    let to = parent.join(next_name);
+    if from == to {
+        return Ok(path);
+    }
+    if to.exists() {
+        return Err(format!("target already exists: {}", to.display()));
+    }
+
+    tokio::fs::rename(&from, &to)
+        .await
+        .map_err(|e| format!("failed to rename {}: {e}", from.display()))?;
+    Ok(to.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn watch_file(
     app: AppHandle,
     state: State<'_, Mutex<WatcherState>>,
@@ -163,6 +198,38 @@ mod tests {
             .await
             .expect("read ok");
         assert_eq!(out, text);
+    }
+
+    #[tokio::test]
+    async fn rename_markdown_preserves_extension() {
+        let dir = tempdir().expect("tempdir");
+        let path = dir.path().join("01-system-design.md");
+        tokio::fs::write(&path, b"# hello").await.expect("write");
+
+        let out = rename_markdown(
+            path.to_string_lossy().into_owned(),
+            "02-system-design".to_string(),
+        )
+        .await
+        .expect("rename ok");
+
+        let renamed = dir.path().join("02-system-design.md");
+        assert_eq!(PathBuf::from(out), renamed);
+        assert!(renamed.exists());
+        assert!(!path.exists());
+    }
+
+    #[tokio::test]
+    async fn rename_markdown_rejects_path_separators() {
+        let dir = tempdir().expect("tempdir");
+        let path = dir.path().join("a.md");
+        tokio::fs::write(&path, b"x").await.expect("write");
+
+        let err = rename_markdown(path.to_string_lossy().into_owned(), "nested/a".to_string())
+            .await
+            .expect_err("should fail");
+        assert!(err.contains("path separators"));
+        assert!(path.exists());
     }
 
     #[tokio::test]

@@ -127,10 +127,77 @@ body {
   color: var(--color-ink-muted);
   text-align: center;
   padding: 0 0.5rem;
+  cursor: text;
+}
+
+.toolbar-title-button {
+  border: 0;
+  background: transparent;
+  appearance: none;
+}
+
+.toolbar-title-button:disabled {
+  cursor: default;
 }
 
 [data-theme="dark"] .toolbar-title {
   color: var(--color-ink-muted-dark);
+}
+
+.toolbar-title.is-renaming {
+  overflow: visible;
+}
+
+.title-rename {
+  display: inline-flex;
+  align-items: center;
+  max-width: min(34rem, 100%);
+  min-width: 8rem;
+  height: 28px;
+  vertical-align: middle;
+}
+
+.title-rename-input {
+  min-width: 0;
+  width: 100%;
+  height: 26px;
+  padding: 0 0.15rem 0 0.35rem;
+  border: 1px solid var(--color-accent);
+  border-right: 0;
+  border-radius: 5px 0 0 5px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+  text-align: right;
+  outline: none;
+}
+
+.title-rename-extension {
+  flex: 0 0 auto;
+  height: 26px;
+  padding: 0.34rem 0.35rem 0;
+  border: 1px solid var(--color-accent);
+  border-left: 0;
+  border-radius: 0 5px 5px 0;
+  background: color-mix(in oklab, var(--color-accent) 10%, transparent);
+  color: var(--color-ink-muted);
+  font: inherit;
+  line-height: 1;
+}
+
+.toolbar-title.is-error .title-rename-input,
+.toolbar-title.is-error .title-rename-extension {
+  border-color: #dc2626;
+}
+
+[data-theme="dark"] .title-rename-input {
+  background: var(--color-surface-muted-dark);
+  color: var(--color-ink-dark);
+}
+
+[data-theme="dark"] .title-rename-extension {
+  color: var(--color-ink-muted-dark);
+  background: color-mix(in oklab, var(--color-accent-dark) 18%, transparent);
 }
 
 .toolbar-spacer {
@@ -790,6 +857,56 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.tab-rename {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+}
+
+.tab-rename-input {
+  min-width: 0;
+  width: 100%;
+  height: 22px;
+  padding: 0 0.15rem 0 0.25rem;
+  border: 1px solid var(--color-accent);
+  border-right: 0;
+  border-radius: 4px 0 0 4px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+  outline: none;
+}
+
+.tab-rename-extension {
+  flex: 0 0 auto;
+  height: 22px;
+  padding: 0.27rem 0.25rem 0;
+  border: 1px solid var(--color-accent);
+  border-left: 0;
+  border-radius: 0 4px 4px 0;
+  background: color-mix(in oklab, var(--color-accent) 10%, transparent);
+  color: var(--color-ink-muted);
+  font: inherit;
+  line-height: 1;
+}
+
+.tab-rename.is-error .tab-rename-input,
+.tab-rename.is-error .tab-rename-extension {
+  border-color: #dc2626;
+}
+
+[data-theme="dark"] .tab-rename-input {
+  background: var(--color-surface-muted-dark);
+  color: var(--color-ink-dark);
+}
+
+[data-theme="dark"] .tab-rename-extension {
+  color: var(--color-ink-muted-dark);
+  background: color-mix(in oklab, var(--color-accent-dark) 18%, transparent);
 }
 
 .tab-close {

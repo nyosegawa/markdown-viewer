@@ -41,6 +41,7 @@ function App() {
     closeRight,
     closeAll,
     reopenClosed,
+    renameTab,
     moveTab,
     toggleActiveMode,
     setActiveMode,
@@ -80,6 +81,14 @@ function App() {
       console.warn("reveal failed", err);
     });
   }, []);
+
+  const handleRenameActive = useCallback(
+    async (filenameStem: string) => {
+      if (!activeId) return;
+      await renameTab(activeId, filenameStem);
+    },
+    [activeId, renameTab],
+  );
 
   // Click on a local link inside the rendered markdown body. We resolve it
   // against the active tab's directory and route based on what's there:
@@ -274,6 +283,7 @@ function App() {
         recent={recent}
         onPickRecent={(p) => void handleOpenPath(p)}
         onClearRecent={clearRecent}
+        onRenameActive={handleRenameActive}
         onShowHelp={() => setHelpOpen(true)}
       />
 
@@ -289,6 +299,7 @@ function App() {
           onCopyPath={handleCopyPath}
           onRevealInFileManager={handleReveal}
           onReorder={moveTab}
+          onRename={(id, filenameStem) => renameTab(id, filenameStem).then(() => undefined)}
         />
       ) : null}
 

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   invokeReadMarkdown: vi.fn(),
+  invokeRenameMarkdown: vi.fn(),
   invokeWatchFile: vi.fn(),
   invokeUnwatchFile: vi.fn(),
   listenFileChanged: vi.fn(),
@@ -10,6 +11,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/tauri", () => ({
   invokeReadMarkdown: mocks.invokeReadMarkdown,
+  invokeRenameMarkdown: mocks.invokeRenameMarkdown,
   invokeWatchFile: mocks.invokeWatchFile,
   invokeUnwatchFile: mocks.invokeUnwatchFile,
   listenFileChanged: mocks.listenFileChanged,
@@ -20,6 +22,7 @@ import { useTabs } from "./useTabs";
 describe("useTabs", () => {
   beforeEach(() => {
     mocks.invokeReadMarkdown.mockReset();
+    mocks.invokeRenameMarkdown.mockReset();
     mocks.invokeWatchFile.mockReset().mockResolvedValue(undefined);
     mocks.invokeUnwatchFile.mockReset().mockResolvedValue(undefined);
     mocks.listenFileChanged.mockReset().mockResolvedValue(() => {});
@@ -275,6 +278,26 @@ describe("useTabs", () => {
     });
     act(() => result.current.setActiveSource("edited"));
     expect(result.current.tabs[0]?.source).toBe("edited");
+  });
+
+  it("renameTab updates the tab path and rewatches the file", async () => {
+    mocks.invokeReadMarkdown.mockResolvedValue("x");
+    mocks.invokeRenameMarkdown.mockResolvedValue("/docs/b.md");
+    const { result } = renderHook(() => useTabs());
+
+    await act(async () => {
+      await result.current.openPath("/docs/a.md");
+    });
+    const id = result.current.tabs[0]?.id ?? "";
+
+    await act(async () => {
+      await result.current.renameTab(id, "b");
+    });
+
+    expect(mocks.invokeRenameMarkdown).toHaveBeenCalledWith("/docs/a.md", "b");
+    expect(result.current.tabs[0]?.path).toBe("/docs/b.md");
+    expect(mocks.invokeUnwatchFile).toHaveBeenCalledWith("/docs/a.md");
+    expect(mocks.invokeWatchFile).toHaveBeenCalledWith("/docs/b.md");
   });
 
   it("error opens produce an error tab (no watch call)", async () => {

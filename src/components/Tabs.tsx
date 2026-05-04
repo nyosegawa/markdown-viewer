@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Tab } from "@/hooks/useTabs";
+import { basename, normalizeRenameStem, splitFilename } from "@/lib/path-label";
 import { formatShortcut, isMac, type Shortcut, TAB_SHORTCUTS } from "@/lib/platform";
 
 // Min pixel distance before a pointerdown is promoted to a drag.
@@ -16,12 +17,7 @@ export interface TabsProps {
   onCopyPath: (path: string) => void;
   onRevealInFileManager: (path: string) => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
-}
-
-function basename(path: string): string {
-  const clean = path.replace(/[/\\]+$/, "");
-  const parts = clean.split(/[\\/]/);
-  return parts[parts.length - 1] || path;
+  onRename: (id: string, filenameStem: string) => Promise<void>;
 }
 
 interface MenuState {
@@ -53,6 +49,7 @@ export function Tabs({
   onCopyPath,
   onRevealInFileManager,
   onReorder,
+  onRename,
 }: TabsProps) {
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
@@ -61,6 +58,12 @@ export function Tabs({
   const mac = useMemo(() => isMac(), []);
   const shortcutHint = useCallback((sc: Shortcut) => formatShortcut(sc, mac), [mac]);
   const [drag, setDrag] = useState<DragState | null>(null);
+  const [editing, setEditing] = useState<{
+    tabId: string;
+    value: string;
+    error: string | null;
+  } | null>(null);
+  const renameInputRef = useRef<HTMLInputElement>(null);
   // Mirror in a ref so document-level pointer listeners always see the
   // current value (closure capture makes setState-only variants stale).
   const dragRef = useRef<DragState | null>(null);
@@ -73,6 +76,52 @@ export function Tabs({
     setMenu(null);
     setMenuPos(null);
   }, []);
+
+  useEffect(() => {
+    if (!editing) return;
+    const input = renameInputRef.current;
+    if (!input) return;
+    input.focus();
+    input.select();
+  }, [editing]);
+
+  const beginRename = useCallback(
+    (tab: Tab) => {
+      const { stem } = splitFilename(tab.path);
+      setEditing({ tabId: tab.id, value: stem, error: null });
+      closeMenu();
+    },
+    [closeMenu],
+  );
+
+  const cancelRename = useCallback(() => {
+    setEditing(null);
+  }, []);
+
+  const commitRename = useCallback(
+    async (value?: string) => {
+      if (!editing) return;
+      const tab = tabs.find((t) => t.id === editing.tabId);
+      if (!tab) {
+        setEditing(null);
+        return;
+      }
+      const { stem, extension } = splitFilename(tab.path);
+      const nextStem = normalizeRenameStem(value ?? editing.value, extension);
+      if (nextStem === stem) {
+        setEditing(null);
+        return;
+      }
+      try {
+        await onRename(tab.id, nextStem);
+        setEditing(null);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setEditing((cur) => (cur ? { ...cur, error: message } : cur));
+      }
+    },
+    [editing, onRename, tabs],
+  );
 
   // Clamp menu position into the viewport once we know the menu's measured
   // size — opening at the raw click point causes overflow when the user
@@ -251,10 +300,15 @@ export function Tabs({
               tabIndex={isActive ? 0 : -1}
               aria-selected={isActive}
               className={classes}
-              title={t.path}
+              title={editing?.tabId === t.id && editing.error ? editing.error : t.path}
               data-role="tab"
               data-testid={`tab-${i}`}
               onPointerDown={(e) => beginDrag(e, i, t)}
+              onDoubleClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                beginRename(t);
+              }}
               onClick={() => {
                 if (suppressClickRef.current) {
                   suppressClickRef.current = false;
@@ -285,11 +339,42 @@ export function Tabs({
                 });
               }}
             >
-              <span className="tab-label">{basename(t.path)}</span>
+              {editing?.tabId === t.id ? (
+                <span className={editing.error ? "tab-rename is-error" : "tab-rename"}>
+                  <input
+                    ref={renameInputRef}
+                    className="tab-rename-input"
+                    aria-label="Rename file"
+                    value={editing.value}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      const value = e.currentTarget.value;
+                      setEditing((cur) => (cur ? { ...cur, value, error: null } : cur));
+                    }}
+                    onBlur={(e) => void commitRename(e.currentTarget.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void commitRename(e.currentTarget.value);
+                      } else if (e.key === "Escape") {
+                        e.preventDefault();
+                        cancelRename();
+                      }
+                    }}
+                  />
+                  <span className="tab-rename-extension" aria-hidden="true">
+                    {splitFilename(t.path).extension}
+                  </span>
+                </span>
+              ) : (
+                <span className="tab-label">{splitFilename(t.path).basename}</span>
+              )}
               <button
                 type="button"
                 className="tab-close"
-                aria-label={`Close ${basename(t.path)}`}
+                aria-label={`Close ${splitFilename(t.path).basename}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   onClose(t.id);

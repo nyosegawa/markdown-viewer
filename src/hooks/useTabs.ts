@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   invokeReadMarkdown,
+  invokeRenameMarkdown,
   invokeUnwatchFile,
   invokeWatchFile,
   listenFileChanged,
@@ -240,6 +241,38 @@ export function useTabs() {
     await openPath(pop.path);
   }, [openPath]);
 
+  const renameTab = useCallback(
+    async (id: string, filenameStem: string): Promise<string | null> => {
+      const tab = stateRef.current.tabs.find((t) => t.id === id);
+      if (!tab) return null;
+      const nextPath = await invokeRenameMarkdown(tab.path, filenameStem);
+      if (nextPath === tab.path) return nextPath;
+
+      setState((prev) => ({
+        ...prev,
+        tabs: prev.tabs.map((t) =>
+          t.id === id ? { ...t, path: nextPath, status: "ready", error: null } : t,
+        ),
+        recentlyClosed: prev.recentlyClosed.map((closed) =>
+          closed.path === tab.path ? { ...closed, path: nextPath } : closed,
+        ),
+      }));
+
+      try {
+        await invokeUnwatchFile(tab.path);
+      } catch {
+        /* ignore */
+      }
+      try {
+        await invokeWatchFile(nextPath);
+      } catch (err) {
+        console.warn("watch_file failed", err);
+      }
+      return nextPath;
+    },
+    [],
+  );
+
   const moveTab = useCallback((fromIndex: number, toIndex: number) => {
     setState((prev) => {
       if (fromIndex === toIndex) return prev;
@@ -341,6 +374,7 @@ export function useTabs() {
     closeRight,
     closeAll,
     reopenClosed,
+    renameTab,
     moveTab,
     setActiveMode,
     toggleActiveMode,

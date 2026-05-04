@@ -3,6 +3,7 @@ import {
   drainPendingOpenFiles,
   getCliPath,
   invokeReadMarkdown,
+  invokeRenameMarkdown,
   invokeRevealInFileManager,
   invokeUnwatchFile,
   invokeWatchFile,
@@ -29,6 +30,10 @@ describe("lib/tauri stubs in non-Tauri env", () => {
 
   it("invokeReadMarkdown throws with a helpful message", async () => {
     await expect(invokeReadMarkdown("/whatever.md")).rejects.toThrow(/Tauri runtime/);
+  });
+
+  it("invokeRenameMarkdown throws with a helpful message", async () => {
+    await expect(invokeRenameMarkdown("/whatever.md", "renamed")).rejects.toThrow(/Tauri runtime/);
   });
 
   it("invokeWatchFile / invokeUnwatchFile resolve to undefined silently", async () => {

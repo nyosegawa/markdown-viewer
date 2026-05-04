@@ -20,6 +20,14 @@ export async function invokeReadMarkdown(path: string): Promise<string> {
   return invoke<string>("read_markdown", { path });
 }
 
+export async function invokeRenameMarkdown(path: string, filenameStem: string): Promise<string> {
+  if (!isTauri()) {
+    throw new Error("Tauri runtime unavailable");
+  }
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<string>("rename_markdown", { path, filenameStem });
+}
+
 export async function invokeWatchFile(path: string): Promise<void> {
   if (!isTauri()) return;
   const { invoke } = await import("@tauri-apps/api/core");

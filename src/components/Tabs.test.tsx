@@ -25,6 +25,7 @@ function baseProps() {
     onCopyPath: vi.fn(),
     onRevealInFileManager: vi.fn(),
     onReorder: vi.fn(),
+    onRename: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -170,5 +171,30 @@ describe("Tabs", () => {
     const menu2 = await screen.findByTestId("tab-context-menu");
     await userEvent.click(within(menu2).getByRole("menuitem", { name: "Show in file manager" }));
     expect(props.onRevealInFileManager).toHaveBeenCalledWith("/path/to/a.md");
+  });
+
+  it("double-clicking a tab renames only the filename stem", async () => {
+    const props = baseProps();
+    render(<Tabs tabs={[makeTab("/path/to/01-system-design.md", "a")]} activeId="a" {...props} />);
+
+    await userEvent.dblClick(screen.getByTestId("tab-0"));
+    const input = screen.getByRole("textbox", { name: "Rename file" });
+    expect(input).toHaveValue("01-system-design");
+    expect(screen.getByText(".md")).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: "02-system-design" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(props.onRename).toHaveBeenCalledWith("a", "02-system-design");
+  });
+
+  it("strips the preserved extension if the user types it during tab rename", async () => {
+    const props = baseProps();
+    render(<Tabs tabs={[makeTab("/path/to/a.md", "a")]} activeId="a" {...props} />);
+
+    await userEvent.dblClick(screen.getByTestId("tab-0"));
+    const input = screen.getByRole("textbox", { name: "Rename file" });
+    fireEvent.change(input, { target: { value: "b.md" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(props.onRename).toHaveBeenCalledWith("a", "b");
   });
 });

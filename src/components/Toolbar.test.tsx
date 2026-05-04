@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { Toolbar } from "./Toolbar";
@@ -14,6 +14,7 @@ function baseProps() {
     recent: ["/tmp/one.md", "/tmp/two.md"],
     onPickRecent: vi.fn(),
     onClearRecent: vi.fn(),
+    onRenameActive: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -57,5 +58,19 @@ describe("Toolbar", () => {
     render(<Toolbar {...props} />);
     await userEvent.click(screen.getByTestId("theme-btn"));
     expect(props.onToggleTheme).toHaveBeenCalledOnce();
+  });
+
+  it("double-clicking the title renames only the active filename stem", async () => {
+    const props = baseProps();
+    render(<Toolbar {...props} path="/tmp/01-system-design.md" />);
+
+    await userEvent.dblClick(screen.getByTestId("title"));
+    const input = screen.getByRole("textbox", { name: "Rename active file" });
+    expect(input).toHaveValue("01-system-design");
+    expect(screen.getByText(".md")).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: "02-system-design" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(props.onRenameActive).toHaveBeenCalledWith("02-system-design");
   });
 });

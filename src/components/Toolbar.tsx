@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Theme } from "@/hooks/useTheme";
+import { basename, dirname, normalizeRenameStem, splitFilename } from "@/lib/path-label";
 
 export type ViewMode = "view" | "edit";
 
@@ -13,20 +14,8 @@ export interface ToolbarProps {
   recent: string[];
   onPickRecent: (path: string) => void;
   onClearRecent: () => void;
+  onRenameActive?: (filenameStem: string) => Promise<void>;
   onShowHelp?: () => void;
-}
-
-function basename(path: string): string {
-  const clean = path.replace(/[/\\]+$/, "");
-  const parts = clean.split(/[\\/]/);
-  return parts[parts.length - 1] || path;
-}
-
-function dirname(path: string): string {
-  const clean = path.replace(/[/\\]+$/, "");
-  const parts = clean.split(/[\\/]/);
-  parts.pop();
-  return parts.join("/");
 }
 
 function FileOpenIcon() {
@@ -140,10 +129,15 @@ export function Toolbar({
   recent,
   onPickRecent,
   onClearRecent,
+  onRenameActive,
   onShowHelp,
 }: ToolbarProps) {
   const [recentOpen, setRecentOpen] = useState(false);
+  const [editingTitle, setEditingTitle] = useState<{ value: string; error: string | null } | null>(
+    null,
+  );
   const menuRef = useRef<HTMLDivElement>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!recentOpen) return;
@@ -160,6 +154,40 @@ export function Toolbar({
       document.removeEventListener("keydown", onEsc);
     };
   }, [recentOpen]);
+
+  useEffect(() => {
+    if (!editingTitle) return;
+    const input = titleInputRef.current;
+    if (!input) return;
+    input.focus();
+    input.select();
+  }, [editingTitle]);
+
+  const beginTitleRename = () => {
+    if (!path || !onRenameActive) return;
+    setEditingTitle({ value: splitFilename(path).stem, error: null });
+  };
+
+  const cancelTitleRename = () => {
+    setEditingTitle(null);
+  };
+
+  const commitTitleRename = async (value?: string) => {
+    if (!path || !onRenameActive || !editingTitle) return;
+    const { stem, extension } = splitFilename(path);
+    const nextStem = normalizeRenameStem(value ?? editingTitle.value, extension);
+    if (nextStem === stem) {
+      setEditingTitle(null);
+      return;
+    }
+    try {
+      await onRenameActive(nextStem);
+      setEditingTitle(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setEditingTitle((cur) => (cur ? { ...cur, error: message } : cur));
+    }
+  };
 
   return (
     <header className="toolbar" role="toolbar" aria-label="Main toolbar" data-tauri-drag-region>
@@ -222,9 +250,50 @@ export function Toolbar({
         </div>
       </div>
 
-      <span className="toolbar-title" data-testid="title">
-        {path ? basename(path) : "No file"}
-      </span>
+      {editingTitle && path ? (
+        <span
+          className={editingTitle.error ? "toolbar-title is-renaming is-error" : "toolbar-title"}
+          data-testid="title"
+          title={editingTitle.error ?? path}
+        >
+          <span className="title-rename">
+            <input
+              ref={titleInputRef}
+              className="title-rename-input"
+              aria-label="Rename active file"
+              value={editingTitle.value}
+              onChange={(e) => {
+                const value = e.currentTarget.value;
+                setEditingTitle((cur) => (cur ? { ...cur, value, error: null } : cur));
+              }}
+              onBlur={(e) => void commitTitleRename(e.currentTarget.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void commitTitleRename(e.currentTarget.value);
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  cancelTitleRename();
+                }
+              }}
+            />
+            <span className="title-rename-extension" aria-hidden="true">
+              {splitFilename(path).extension}
+            </span>
+          </span>
+        </span>
+      ) : (
+        <button
+          type="button"
+          className="toolbar-title toolbar-title-button"
+          data-testid="title"
+          title={path ?? undefined}
+          onDoubleClick={beginTitleRename}
+          disabled={!path || !onRenameActive}
+        >
+          {path ? basename(path) : "No file"}
+        </button>
+      )}
 
       <div className="toolbar-group">
         <button
