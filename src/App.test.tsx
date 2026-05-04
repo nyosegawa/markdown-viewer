@@ -100,11 +100,11 @@ describe("App", () => {
 
     const modeBtn = screen.getByTestId("mode-btn");
     await userEvent.click(modeBtn);
-    expect(modeBtn).toHaveTextContent("Viewing");
+    expect(modeBtn).toHaveAccessibleName("Switch to view mode");
 
     await act(async () => {
       await userEvent.keyboard("{Escape}");
     });
-    expect(modeBtn).toHaveTextContent("Edit");
+    expect(modeBtn).toHaveAccessibleName("Switch to edit mode");
   });
 });

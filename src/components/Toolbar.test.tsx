@@ -26,16 +26,16 @@ describe("Toolbar", () => {
   it("calls onOpen when Open is clicked", async () => {
     const props = baseProps();
     render(<Toolbar {...props} />);
-    await userEvent.click(screen.getByTestId("open-btn"));
+    await userEvent.click(screen.getByRole("button", { name: "Open file" }));
     expect(props.onOpen).toHaveBeenCalledOnce();
   });
 
-  it("toggles mode label between Edit and Viewing", () => {
+  it("toggles mode action between edit and view", () => {
     const props = baseProps();
     const { rerender } = render(<Toolbar {...props} />);
-    expect(screen.getByTestId("mode-btn").textContent).toBe("Edit");
+    expect(screen.getByTestId("mode-btn")).toHaveAccessibleName("Switch to edit mode");
     rerender(<Toolbar {...props} mode="edit" />);
-    expect(screen.getByTestId("mode-btn").textContent).toBe("Viewing");
+    expect(screen.getByTestId("mode-btn")).toHaveAccessibleName("Switch to view mode");
     expect(screen.getByTestId("mode-btn").getAttribute("aria-pressed")).toBe("true");
   });
 
@@ -46,7 +46,7 @@ describe("Toolbar", () => {
 
   it("shows recent files in a menu", async () => {
     render(<Toolbar {...baseProps()} />);
-    await userEvent.click(screen.getByTestId("recent-btn"));
+    await userEvent.click(screen.getByRole("button", { name: "Open recent files" }));
     const list = screen.getByTestId("recent-list");
     expect(list.textContent).toContain("one.md");
     expect(list.textContent).toContain("two.md");

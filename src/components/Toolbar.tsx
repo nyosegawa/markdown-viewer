@@ -29,6 +29,79 @@ function dirname(path: string): string {
   return parts.join("/");
 }
 
+function FolderOpenIcon() {
+  return (
+    <svg
+      className="toolbar-btn-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 7.5V6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v1" />
+      <path d="M3 9.5h18l-2 8a2 2 0 0 1-2 1.5H7a2 2 0 0 1-2-1.5l-2-8z" />
+    </svg>
+  );
+}
+
+function HistoryIcon() {
+  return (
+    <svg
+      className="toolbar-btn-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 12a9 9 0 1 0 3-6.7" />
+      <path d="M3 4v5h5" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg
+      className="toolbar-btn-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+    </svg>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg
+      className="toolbar-btn-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
 function SunIcon() {
   return (
     <svg
@@ -89,34 +162,30 @@ export function Toolbar({
   return (
     <header className="toolbar" role="toolbar" aria-label="Main toolbar" data-tauri-drag-region>
       <div className="toolbar-group">
-        <button type="button" className="toolbar-btn" onClick={onOpen} data-testid="open-btn">
-          Open
+        <button
+          type="button"
+          className="toolbar-btn toolbar-icon-btn"
+          onClick={onOpen}
+          aria-label="Open file"
+          title="Open file"
+          data-testid="open-btn"
+        >
+          <FolderOpenIcon />
         </button>
 
         <div className="recent-menu" ref={menuRef}>
           <button
             type="button"
-            className="toolbar-btn"
+            className="toolbar-btn toolbar-icon-btn"
             onClick={() => setRecentOpen((v) => !v)}
+            aria-label="Open recent files"
             aria-haspopup="menu"
             aria-expanded={recentOpen}
             disabled={recent.length === 0}
+            title="Recent files"
             data-testid="recent-btn"
           >
-            Recent
-            <svg
-              className="toolbar-btn-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              style={{ width: 10, height: 10, marginLeft: 2 }}
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
+            <HistoryIcon />
           </button>
           {recentOpen && recent.length > 0 ? (
             <div className="recent-menu-list" data-testid="recent-list">
@@ -158,13 +227,15 @@ export function Toolbar({
       <div className="toolbar-group">
         <button
           type="button"
-          className="toolbar-btn"
+          className="toolbar-btn toolbar-icon-btn"
           onClick={onToggleMode}
+          aria-label={mode === "edit" ? "Switch to view mode" : "Switch to edit mode"}
           aria-pressed={mode === "edit"}
           disabled={path === null}
+          title={mode === "edit" ? "View mode" : "Edit mode"}
           data-testid="mode-btn"
         >
-          {mode === "edit" ? "Viewing" : "Edit"}
+          {mode === "edit" ? <EyeIcon /> : <PencilIcon />}
         </button>
 
         <button
