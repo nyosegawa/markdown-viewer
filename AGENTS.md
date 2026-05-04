@@ -22,4 +22,6 @@ npm run tauri build     # Release bundle
 - React hooks dependency omissions must be justified with `useRef` pattern, not `// biome-ignore`.
 - Tauri IPC stays thin: heavy Markdown work happens on the frontend. Rust only reads files, watches them (`notify`), and forwards macOS `RunEvent::Opened` as the `open-file` event.
 - View mode is the default; Edit mode is opt-in only. Don't persist edits to disk without an explicit ADR.
+- For user-facing changes, unless explicitly told not to, finish by committing, pushing to GitHub, watching the pushed GitHub Actions run until it succeeds or fails, and reporting the concrete result.
+- For user-facing app changes, unless explicitly told not to, run `npm run tauri build`, replace `/Applications/markdown-viewer.app` with the generated release `.app`, and verify the installed app can launch.
 - See `docs/adr/` for architectural decisions.
