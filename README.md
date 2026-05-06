@@ -22,14 +22,35 @@ Fast, native **Markdown viewer** built on [Tauri 2.x](https://tauri.app). View-f
 - **Hot reload** — changes on disk (from any external editor) reflow instantly
 - **Recent files** history (last 10) in the toolbar
 
-## Install (local, unsigned)
+## Install
+
+### Homebrew
 
 ```bash
-# After `npm run tauri build`
+brew tap nyosegawa/tap
+brew install --cask markdown-viewer
+```
+
+Updates should go through Homebrew too:
+
+```bash
+brew update
+brew upgrade --cask markdown-viewer
+```
+
+The app is currently unsigned. On first launch, macOS may show an unidentified
+developer warning; use right-click -> Open to allow it.
+
+### Build from source
+
+```bash
+npm install
+npm run tauri build
 cp -R src-tauri/target/release/bundle/macos/markdown-viewer.app /Applications/
 xattr -dr com.apple.quarantine /Applications/markdown-viewer.app
 
-# Register + set as default handler for .md/.markdown/.mdx (requires duti: `brew install duti`)
+# Register + set as default handler for .md/.markdown/.mdx.
+# Requires duti: `brew install duti`
 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -f /Applications/markdown-viewer.app
 for ext in md markdown mdx; do duti -s com.nyosegawa.markdownviewer $ext all; done
 ```
