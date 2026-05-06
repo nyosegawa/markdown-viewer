@@ -406,6 +406,18 @@ export function Tabs({
               role="menuitem"
               className="tab-context-item"
               onClick={() => {
+                const tab = tabs.find((t) => t.id === menu.tabId);
+                if (tab) beginRename(tab);
+              }}
+            >
+              <span className="tab-context-label">Rename file</span>
+            </button>
+            <div className="tab-context-divider" />
+            <button
+              type="button"
+              role="menuitem"
+              className="tab-context-item"
+              onClick={() => {
                 onClose(menu.tabId);
                 closeMenu();
               }}

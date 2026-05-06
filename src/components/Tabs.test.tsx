@@ -69,6 +69,8 @@ describe("Tabs", () => {
     await userEvent.pointer({ keys: "[MouseRight]", target: middle });
     const menu = await screen.findByTestId("tab-context-menu");
 
+    expect(within(menu).getByRole("menuitem", { name: "Rename file" })).toBeInTheDocument();
+
     await userEvent.click(within(menu).getByRole("menuitem", { name: "Close tab" }));
     expect(props.onClose).toHaveBeenCalledWith("b");
   });
@@ -171,6 +173,19 @@ describe("Tabs", () => {
     const menu2 = await screen.findByTestId("tab-context-menu");
     await userEvent.click(within(menu2).getByRole("menuitem", { name: "Show in file manager" }));
     expect(props.onRevealInFileManager).toHaveBeenCalledWith("/path/to/a.md");
+  });
+
+  it("context menu Rename file starts inline tab rename", async () => {
+    const props = baseProps();
+    render(<Tabs tabs={[makeTab("/path/to/01-system-design.md", "a")]} activeId="a" {...props} />);
+
+    await userEvent.pointer({ keys: "[MouseRight]", target: screen.getByTestId("tab-0") });
+    const menu = await screen.findByTestId("tab-context-menu");
+    await userEvent.click(within(menu).getByRole("menuitem", { name: "Rename file" }));
+
+    const input = screen.getByRole("textbox", { name: "Rename file" });
+    expect(input).toHaveValue("01-system-design");
+    expect(screen.queryByTestId("tab-context-menu")).not.toBeInTheDocument();
   });
 
   it("double-clicking a tab renames only the filename stem", async () => {

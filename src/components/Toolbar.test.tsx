@@ -60,11 +60,11 @@ describe("Toolbar", () => {
     expect(props.onToggleTheme).toHaveBeenCalledOnce();
   });
 
-  it("double-clicking the title renames only the active filename stem", async () => {
+  it("double-clicking the filename title text renames only the active filename stem", async () => {
     const props = baseProps();
     render(<Toolbar {...props} path="/tmp/01-system-design.md" />);
 
-    await userEvent.dblClick(screen.getByTestId("title"));
+    await userEvent.dblClick(screen.getByTestId("title-rename-hotspot"));
     const input = screen.getByRole("textbox", { name: "Rename active file" });
     expect(input).toHaveValue("01-system-design");
     expect(screen.getByText(".md")).toBeInTheDocument();
@@ -72,5 +72,13 @@ describe("Toolbar", () => {
     fireEvent.change(input, { target: { value: "02-system-design" } });
     fireEvent.keyDown(input, { key: "Enter" });
     expect(props.onRenameActive).toHaveBeenCalledWith("02-system-design");
+  });
+
+  it("leaves the surrounding titlebar area for native window double-click behavior", async () => {
+    render(<Toolbar {...baseProps()} path="/tmp/hello.md" />);
+
+    await userEvent.dblClick(screen.getByTestId("title"));
+    expect(screen.queryByRole("textbox", { name: "Rename active file" })).not.toBeInTheDocument();
+    expect(screen.getByTestId("title")).toHaveAttribute("data-tauri-drag-region");
   });
 });

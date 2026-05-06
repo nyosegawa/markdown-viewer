@@ -283,16 +283,31 @@ export function Toolbar({
           </span>
         </span>
       ) : (
-        <button
-          type="button"
-          className="toolbar-title toolbar-title-button"
+        <div
+          className="toolbar-title"
           data-testid="title"
           title={path ?? undefined}
-          onDoubleClick={beginTitleRename}
-          disabled={!path || !onRenameActive}
+          data-tauri-drag-region
         >
-          {path ? basename(path) : "No file"}
-        </button>
+          {path && onRenameActive ? (
+            <button
+              type="button"
+              className="toolbar-title-name is-renamable"
+              onDoubleClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                beginTitleRename();
+              }}
+              data-testid="title-rename-hotspot"
+            >
+              {basename(path)}
+            </button>
+          ) : (
+            <span className="toolbar-title-name" data-testid="title-rename-hotspot">
+              {path ? basename(path) : "No file"}
+            </span>
+          )}
+        </div>
       )}
 
       <div className="toolbar-group">

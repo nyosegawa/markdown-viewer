@@ -130,14 +130,23 @@ body {
   cursor: text;
 }
 
-.toolbar-title-button {
+.toolbar-title-name {
+  display: inline-block;
+  max-width: min(34rem, 100%);
+  padding: 0;
   border: 0;
-  background: transparent;
   appearance: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  cursor: default;
 }
 
-.toolbar-title-button:disabled {
-  cursor: default;
+.toolbar-title-name.is-renamable {
+  cursor: text;
 }
 
 [data-theme="dark"] .toolbar-title {
