@@ -707,22 +707,22 @@ body {
   background: color-mix(in oklab, white 9%, transparent);
 }
 
-/* CSS Custom Highlight API: match + current */
-::highlight(mdv-search) {
+.search-highlight {
+  padding: 0;
   background-color: rgba(255, 225, 0, 0.42);
   color: inherit;
 }
 
-::highlight(mdv-search-current) {
+.search-highlight-current {
   background-color: rgba(255, 140, 40, 0.75);
   color: inherit;
 }
 
-[data-theme="dark"] ::highlight(mdv-search) {
+[data-theme="dark"] .search-highlight {
   background-color: rgba(255, 225, 0, 0.3);
 }
 
-[data-theme="dark"] ::highlight(mdv-search-current) {
+[data-theme="dark"] .search-highlight-current {
   background-color: rgba(255, 160, 60, 0.6);
 }
 

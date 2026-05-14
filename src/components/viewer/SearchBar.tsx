@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 export interface SearchBarProps {
   containerRef: React.RefObject<HTMLElement | null>;
@@ -8,17 +8,31 @@ export interface SearchBarProps {
   onClose: () => void;
 }
 
-function collectMatches(root: HTMLElement, query: string): Range[] {
-  if (!query) return [];
-  const needle = query.toLowerCase();
-  const matches: Range[] = [];
-  const segments: Array<{ node: Text; start: number; end: number }> = [];
-  let haystack = "";
+interface TextSegment {
+  node: Text;
+  start: number;
+  end: number;
+}
+
+interface SearchMatch {
+  start: number;
+  end: number;
+}
+
+interface MatchState {
+  query: string;
+  items: SearchMatch[];
+}
+
+function collectTextSegments(root: HTMLElement): { segments: TextSegment[]; text: string } {
+  const segments: TextSegment[] = [];
+  let text = "";
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode: (node) => {
       const parent = node.parentElement;
       if (!parent) return NodeFilter.FILTER_REJECT;
       if (parent.closest(".search-bar")) return NodeFilter.FILTER_REJECT;
+      if (parent.closest("mark.search-highlight")) return NodeFilter.FILTER_REJECT;
       return node.nodeValue && node.nodeValue.length > 0
         ? NodeFilter.FILTER_ACCEPT
         : NodeFilter.FILTER_REJECT;
@@ -26,73 +40,87 @@ function collectMatches(root: HTMLElement, query: string): Range[] {
   });
   let node: Node | null = walker.nextNode();
   while (node) {
-    const text = node.nodeValue;
-    if (text) {
-      const start = haystack.length;
-      haystack += text;
-      segments.push({ node: node as Text, start, end: haystack.length });
+    const value = node.nodeValue;
+    if (value) {
+      const start = text.length;
+      text += value;
+      segments.push({ node: node as Text, start, end: text.length });
     }
     node = walker.nextNode();
   }
+  return { segments, text };
+}
 
-  const lower = haystack.toLowerCase();
+function collectMatches(root: HTMLElement, query: string): SearchMatch[] {
+  if (!query) return [];
+  const needle = query.toLowerCase();
+  const { text } = collectTextSegments(root);
+  const matches: SearchMatch[] = [];
+  const lower = text.toLowerCase();
   let idx = lower.indexOf(needle);
   while (idx !== -1) {
-    const start = positionForOffset(segments, idx);
-    const end = positionForOffset(segments, idx + needle.length);
-    if (start && end) {
-      const range = document.createRange();
-      range.setStart(start.node, start.offset);
-      range.setEnd(end.node, end.offset);
-      matches.push(range);
-    }
+    matches.push({ start: idx, end: idx + needle.length });
     idx = lower.indexOf(needle, idx + needle.length);
   }
   return matches;
 }
 
-function positionForOffset(
-  segments: Array<{ node: Text; start: number; end: number }>,
-  offset: number,
-): { node: Text; offset: number } | null {
-  for (const segment of segments) {
-    if (offset >= segment.start && offset <= segment.end) {
-      return { node: segment.node, offset: offset - segment.start };
-    }
-  }
-  return null;
-}
-
 const ALL_KEY = "mdv-search";
 const CURRENT_KEY = "mdv-search-current";
 
-function clearHighlights() {
+function clearCssHighlights() {
   if (typeof CSS !== "undefined" && "highlights" in CSS) {
     CSS.highlights.delete(ALL_KEY);
     CSS.highlights.delete(CURRENT_KEY);
   }
 }
 
-function applyHighlights(matches: Range[], currentIndex: number) {
-  if (typeof CSS === "undefined" || !("highlights" in CSS)) return;
-  if (typeof Highlight === "undefined") return;
-  clearHighlights();
-  if (matches.length === 0) {
-    return;
+function clearDomHighlights(root: HTMLElement) {
+  for (const mark of Array.from(root.querySelectorAll("mark.search-highlight"))) {
+    mark.replaceWith(document.createTextNode(mark.textContent ?? ""));
   }
-  const all = new Highlight(...matches);
-  CSS.highlights.set(ALL_KEY, all);
-  const current = matches[currentIndex];
-  if (current) {
-    const currentHl = new Highlight(current);
-    CSS.highlights.set(CURRENT_KEY, currentHl);
-  } else {
-    CSS.highlights.delete(CURRENT_KEY);
-  }
+  root.normalize();
 }
 
-function scrollRangeIntoView(range: Range, scroller: HTMLElement) {
-  const rangeRect = range.getBoundingClientRect();
+function wrapTextSlice(node: Text, start: number, end: number, current: boolean): HTMLElement {
+  const range = document.createRange();
+  range.setStart(node, start);
+  range.setEnd(node, end);
+  const mark = document.createElement("mark");
+  mark.className = current ? "search-highlight search-highlight-current" : "search-highlight";
+  range.surroundContents(mark);
+  return mark;
+}
+
+function applyHighlights(
+  root: HTMLElement,
+  matches: SearchMatch[],
+  currentIndex: number,
+): HTMLElement | null {
+  clearCssHighlights();
+  clearDomHighlights(root);
+  if (matches.length === 0) return null;
+
+  const { segments } = collectTextSegments(root);
+  let currentMark: HTMLElement | null = null;
+  for (let matchIndex = matches.length - 1; matchIndex >= 0; matchIndex -= 1) {
+    const match = matches[matchIndex];
+    const affected = segments
+      .filter((segment) => segment.start < match.end && segment.end > match.start)
+      .reverse();
+    for (const segment of affected) {
+      const start = Math.max(match.start, segment.start) - segment.start;
+      const end = Math.min(match.end, segment.end) - segment.start;
+      if (start >= end) continue;
+      const mark = wrapTextSlice(segment.node, start, end, matchIndex === currentIndex);
+      if (matchIndex === currentIndex) currentMark = mark;
+    }
+  }
+  return currentMark;
+}
+
+function scrollMarkIntoView(mark: HTMLElement, scroller: HTMLElement) {
+  const rangeRect = mark.getBoundingClientRect();
   const hostRect = scroller.getBoundingClientRect();
   const offsetTop = rangeRect.top - hostRect.top + scroller.scrollTop;
   const centered = offsetTop - scroller.clientHeight / 3;
@@ -106,25 +134,38 @@ export function SearchBar({
   onQueryChange,
   onClose,
 }: SearchBarProps) {
-  const [matches, setMatches] = useState<Range[]>([]);
+  const [matchState, setMatchState] = useState<MatchState>({ query: "", items: [] });
   const [currentIndex, setCurrentIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const root = containerRef.current;
-    const result = root && query.length > 0 ? collectMatches(root, query) : [];
-    setMatches(result);
+    if (!root) return;
+    clearDomHighlights(root);
+    const result = query.length > 0 ? collectMatches(root, query) : [];
+    const current =
+      result.length > 0 ? applyHighlights(root, result, 0) : applyHighlights(root, [], 0);
+    setMatchState({ query, items: result });
     setCurrentIndex(0);
+    if (current) scrollMarkIntoView(current, root);
   }, [query, containerRef]);
 
-  useEffect(() => {
-    applyHighlights(matches, currentIndex);
+  useLayoutEffect(() => {
     const scroller = containerRef.current;
-    const target = matches[currentIndex];
-    if (scroller && target) scrollRangeIntoView(target, scroller);
-  }, [matches, currentIndex, containerRef]);
+    if (!scroller) return;
+    if (matchState.query !== query) return;
+    const current = applyHighlights(scroller, matchState.items, currentIndex);
+    if (current) scrollMarkIntoView(current, scroller);
+  }, [matchState, currentIndex, query, containerRef]);
 
-  useEffect(() => () => clearHighlights(), []);
+  useEffect(
+    () => () => {
+      clearCssHighlights();
+      const root = containerRef.current;
+      if (root) clearDomHighlights(root);
+    },
+    [containerRef],
+  );
 
   useEffect(() => {
     if (!Number.isFinite(focusToken)) return;
@@ -133,14 +174,14 @@ export function SearchBar({
   }, [focusToken]);
 
   const goNext = useCallback(() => {
-    if (matches.length === 0) return;
-    setCurrentIndex((i) => (i + 1) % matches.length);
-  }, [matches.length]);
+    if (matchState.items.length === 0) return;
+    setCurrentIndex((i) => (i + 1) % matchState.items.length);
+  }, [matchState.items.length]);
 
   const goPrev = useCallback(() => {
-    if (matches.length === 0) return;
-    setCurrentIndex((i) => (i - 1 + matches.length) % matches.length);
-  }, [matches.length]);
+    if (matchState.items.length === 0) return;
+    setCurrentIndex((i) => (i - 1 + matchState.items.length) % matchState.items.length);
+  }, [matchState.items.length]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") {
@@ -155,7 +196,7 @@ export function SearchBar({
     }
   };
 
-  const hasMatches = matches.length > 0;
+  const hasMatches = matchState.items.length > 0;
 
   return (
     <search className="search-bar" aria-label="Find in document" data-testid="search-bar">
@@ -183,7 +224,11 @@ export function SearchBar({
         data-testid="search-input"
       />
       <span className="search-bar-count" aria-live="polite">
-        {query.length === 0 ? "" : hasMatches ? `${currentIndex + 1} / ${matches.length}` : "0 / 0"}
+        {query.length === 0
+          ? ""
+          : hasMatches
+            ? `${currentIndex + 1} / ${matchState.items.length}`
+            : "0 / 0"}
       </span>
       <button
         type="button"

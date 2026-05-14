@@ -61,6 +61,14 @@ export function useKeyboardShortcuts(handlers: ShortcutHandlers) {
         return;
       }
 
+      // Ctrl+Tab / Ctrl+Shift+Tab should still work while the search field has focus.
+      if (e.ctrlKey && e.key === "Tab") {
+        e.preventDefault();
+        if (e.shiftKey) handlersRef.current.onPrevTab();
+        else handlersRef.current.onNextTab();
+        return;
+      }
+
       // Skip shortcuts when focus is in a form field — users want native
       // text editing defaults there.
       if (isTypingInFormField(e.target)) return;
@@ -113,14 +121,6 @@ export function useKeyboardShortcuts(handlers: ShortcutHandlers) {
       if (mod && e.shiftKey && !e.altKey && (e.key === "r" || e.key === "R")) {
         e.preventDefault();
         handlersRef.current.onRevealActiveInFileManager();
-        return;
-      }
-
-      // Ctrl+Tab / Ctrl+Shift+Tab — accepted on every platform.
-      if (e.ctrlKey && e.key === "Tab") {
-        e.preventDefault();
-        if (e.shiftKey) handlersRef.current.onPrevTab();
-        else handlersRef.current.onNextTab();
         return;
       }
 

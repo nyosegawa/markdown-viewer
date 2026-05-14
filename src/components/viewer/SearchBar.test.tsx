@@ -98,7 +98,7 @@ describe("SearchBar", () => {
   });
 
   it("treats a query split across inline text nodes as one match", async () => {
-    mount(
+    const { view } = mount(
       <p>
         re<strong>fac</strong>tor current reason
       </p>,
@@ -106,5 +106,24 @@ describe("SearchBar", () => {
     await userEvent.type(screen.getByTestId("search-input"), "refactor");
     const bar = screen.getByTestId("search-bar");
     expect(within(bar).getByText("1 / 1")).toBeInTheDocument();
+    const marks = Array.from(view.container.querySelectorAll("mark.search-highlight"));
+    expect(marks.map((mark) => mark.textContent).join("")).toBe("refactor");
+    expect(marks.some((mark) => mark.textContent === "re" && mark.closest("strong") === null)).toBe(
+      true,
+    );
+    expect(view.container.querySelectorAll("mark.search-highlight-current")).toHaveLength(3);
+  });
+
+  it("does not leave partial highlights from an earlier shorter query", async () => {
+    const { view } = mount(<p>current reason before refactor</p>);
+    const input = screen.getByTestId("search-input");
+    await userEvent.type(input, "re");
+    expect(view.container.querySelectorAll("mark.search-highlight")).toHaveLength(4);
+
+    await userEvent.type(input, "factor");
+    const marks = Array.from(view.container.querySelectorAll("mark.search-highlight"));
+    expect(within(screen.getByTestId("search-bar")).getByText("1 / 1")).toBeInTheDocument();
+    expect(marks).toHaveLength(1);
+    expect(marks[0]).toHaveTextContent("refactor");
   });
 });

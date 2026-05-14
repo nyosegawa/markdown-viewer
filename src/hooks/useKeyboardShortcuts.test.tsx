@@ -176,4 +176,22 @@ describe("useKeyboardShortcuts", () => {
     });
     expect(h.onShowHelp).toHaveBeenCalled();
   });
+
+  it("keeps Ctrl+Tab tab switching active while focus is in an input", async () => {
+    const h = makeHandlers();
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    input.focus();
+    renderHook(() => useKeyboardShortcuts(h));
+
+    await act(async () => {
+      await userEvent.keyboard("{Control>}{Tab}{/Control}");
+    });
+    expect(h.onNextTab).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await userEvent.keyboard("{Control>}{Shift>}{Tab}{/Shift}{/Control}");
+    });
+    expect(h.onPrevTab).toHaveBeenCalledTimes(1);
+  });
 });
