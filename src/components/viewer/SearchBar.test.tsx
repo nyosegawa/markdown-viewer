@@ -1,18 +1,28 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createRef, type ReactNode } from "react";
+import { createRef, type ReactNode, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { SearchBar } from "./SearchBar";
 
 function mount(children: ReactNode) {
   const containerRef = createRef<HTMLDivElement>();
   const onClose = vi.fn();
-  const view = render(
-    <div>
-      <div ref={containerRef}>{children}</div>
-      <SearchBar containerRef={containerRef} onClose={onClose} />
-    </div>,
-  );
+  function Harness() {
+    const [query, setQuery] = useState("");
+    return (
+      <div>
+        <div ref={containerRef}>{children}</div>
+        <SearchBar
+          containerRef={containerRef}
+          query={query}
+          focusToken={0}
+          onQueryChange={setQuery}
+          onClose={onClose}
+        />
+      </div>
+    );
+  }
+  const view = render(<Harness />);
   return { view, onClose };
 }
 
@@ -84,6 +94,17 @@ describe("SearchBar", () => {
     const bar = screen.getByTestId("search-bar");
     // Input's placeholder is 'Find in document' — lowercase match candidate
     // if the walker didn't skip the search UI. We expect exactly 1 hit (the <p>).
+    expect(within(bar).getByText("1 / 1")).toBeInTheDocument();
+  });
+
+  it("treats a query split across inline text nodes as one match", async () => {
+    mount(
+      <p>
+        re<strong>fac</strong>tor current reason
+      </p>,
+    );
+    await userEvent.type(screen.getByTestId("search-input"), "refactor");
+    const bar = screen.getByTestId("search-bar");
     expect(within(bar).getByText("1 / 1")).toBeInTheDocument();
   });
 });

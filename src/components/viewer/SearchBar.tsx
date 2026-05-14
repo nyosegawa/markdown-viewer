@@ -2,6 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface SearchBarProps {
   containerRef: React.RefObject<HTMLElement | null>;
+  query: string;
+  focusToken: number;
+  onQueryChange: (query: string) => void;
   onClose: () => void;
 }
 
@@ -9,6 +12,8 @@ function collectMatches(root: HTMLElement, query: string): Range[] {
   if (!query) return [];
   const needle = query.toLowerCase();
   const matches: Range[] = [];
+  const segments: Array<{ node: Text; start: number; end: number }> = [];
+  let haystack = "";
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode: (node) => {
       const parent = node.parentElement;
@@ -21,19 +26,41 @@ function collectMatches(root: HTMLElement, query: string): Range[] {
   });
   let node: Node | null = walker.nextNode();
   while (node) {
-    const text = node.nodeValue ?? "";
-    const lower = text.toLowerCase();
-    let idx = lower.indexOf(needle);
-    while (idx !== -1) {
-      const range = document.createRange();
-      range.setStart(node, idx);
-      range.setEnd(node, idx + needle.length);
-      matches.push(range);
-      idx = lower.indexOf(needle, idx + needle.length);
+    const text = node.nodeValue;
+    if (text) {
+      const start = haystack.length;
+      haystack += text;
+      segments.push({ node: node as Text, start, end: haystack.length });
     }
     node = walker.nextNode();
   }
+
+  const lower = haystack.toLowerCase();
+  let idx = lower.indexOf(needle);
+  while (idx !== -1) {
+    const start = positionForOffset(segments, idx);
+    const end = positionForOffset(segments, idx + needle.length);
+    if (start && end) {
+      const range = document.createRange();
+      range.setStart(start.node, start.offset);
+      range.setEnd(end.node, end.offset);
+      matches.push(range);
+    }
+    idx = lower.indexOf(needle, idx + needle.length);
+  }
   return matches;
+}
+
+function positionForOffset(
+  segments: Array<{ node: Text; start: number; end: number }>,
+  offset: number,
+): { node: Text; offset: number } | null {
+  for (const segment of segments) {
+    if (offset >= segment.start && offset <= segment.end) {
+      return { node: segment.node, offset: offset - segment.start };
+    }
+  }
+  return null;
 }
 
 const ALL_KEY = "mdv-search";
@@ -49,8 +76,8 @@ function clearHighlights() {
 function applyHighlights(matches: Range[], currentIndex: number) {
   if (typeof CSS === "undefined" || !("highlights" in CSS)) return;
   if (typeof Highlight === "undefined") return;
+  clearHighlights();
   if (matches.length === 0) {
-    clearHighlights();
     return;
   }
   const all = new Highlight(...matches);
@@ -72,8 +99,13 @@ function scrollRangeIntoView(range: Range, scroller: HTMLElement) {
   scroller.scrollTo({ top: Math.max(0, centered), behavior: "smooth" });
 }
 
-export function SearchBar({ containerRef, onClose }: SearchBarProps) {
-  const [query, setQuery] = useState("");
+export function SearchBar({
+  containerRef,
+  query,
+  focusToken,
+  onQueryChange,
+  onClose,
+}: SearchBarProps) {
   const [matches, setMatches] = useState<Range[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -95,9 +127,10 @@ export function SearchBar({ containerRef, onClose }: SearchBarProps) {
   useEffect(() => () => clearHighlights(), []);
 
   useEffect(() => {
+    if (!Number.isFinite(focusToken)) return;
     inputRef.current?.focus();
     inputRef.current?.select();
-  }, []);
+  }, [focusToken]);
 
   const goNext = useCallback(() => {
     if (matches.length === 0) return;
@@ -145,7 +178,7 @@ export function SearchBar({ containerRef, onClose }: SearchBarProps) {
         type="text"
         placeholder="Find in document"
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(e) => onQueryChange(e.target.value)}
         onKeyDown={onKeyDown}
         data-testid="search-input"
       />

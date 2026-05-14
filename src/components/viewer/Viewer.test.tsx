@@ -114,6 +114,36 @@ describe("Viewer", () => {
     expect(screen.queryByTestId("search-input")).toBeNull();
   });
 
+  it("Cmd/Ctrl+F focuses the existing search input after the viewer was clicked", async () => {
+    await renderViewer("# Hello\n\nbody");
+
+    await userEvent.keyboard("{Meta>}f{/Meta}");
+    const input = screen.getByTestId("search-input");
+    await userEvent.type(input, "hello");
+    await userEvent.click(screen.getByTestId("viewer-scroll"));
+
+    expect(document.activeElement).not.toBe(input);
+    await userEvent.keyboard("{Meta>}f{/Meta}");
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("keeps the search bar scoped to the active tab", async () => {
+    const view = render(<Viewer source="# One\n" tabId="one" />);
+    await screen.findByText((_, el) => {
+      if (!el || el.tagName.toLowerCase() !== "article") return false;
+      return el.textContent?.includes("Loading renderer") === false;
+    });
+
+    await userEvent.keyboard("{Meta>}f{/Meta}");
+    await userEvent.type(screen.getByTestId("search-input"), "one");
+
+    view.rerender(<Viewer source="# Two\n" tabId="two" />);
+    expect(screen.queryByTestId("search-input")).toBeNull();
+
+    view.rerender(<Viewer source="# One\n" tabId="one" />);
+    expect(screen.getByTestId("search-input")).toHaveValue("one");
+  });
+
   describe("scrollToSourceOffset", () => {
     function makeBody(offsets: number[]): { root: HTMLElement; body: HTMLElement } {
       const root = document.createElement("div");

@@ -26,6 +26,18 @@ export interface ViewerProps {
   onOpenLocalLink?: (rawHref: string) => void;
 }
 
+interface SearchState {
+  open: boolean;
+  query: string;
+  focusToken: number;
+}
+
+const DEFAULT_SEARCH_STATE: SearchState = {
+  open: false,
+  query: "",
+  focusToken: 0,
+};
+
 function decodeHash(hash: string): string {
   const raw = hash.startsWith("#") ? hash.slice(1) : hash;
   try {
@@ -131,7 +143,9 @@ export function Viewer({ source, tabId, basePath, onOpenLocalLink }: ViewerProps
   useEffect(() => {
     onOpenLocalLinkRef.current = onOpenLocalLink;
   }, [onOpenLocalLink]);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const searchKey = tabId ?? "__single_viewer__";
+  const [searchByTab, setSearchByTab] = useState<Record<string, SearchState>>({});
+  const currentSearch = searchByTab[searchKey] ?? DEFAULT_SEARCH_STATE;
   // Per-tab scroll positions. Kept in a ref so writes don't trigger rerenders.
   const scrollByTabRef = useRef<Map<string, number>>(new Map());
   const lastTabRef = useRef<string | undefined>(tabId);
@@ -332,18 +346,51 @@ export function Viewer({ source, tabId, basePath, onOpenLocalLink }: ViewerProps
       const mod = e.metaKey || e.ctrlKey;
       if (mod && (e.key === "f" || e.key === "F")) {
         e.preventDefault();
-        setSearchOpen(true);
+        setSearchByTab((prev) => {
+          const current = prev[searchKey] ?? DEFAULT_SEARCH_STATE;
+          return {
+            ...prev,
+            [searchKey]: {
+              ...current,
+              open: true,
+              focusToken: current.focusToken + 1,
+            },
+          };
+        });
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [searchKey]);
 
-  const closeSearch = useCallback(() => setSearchOpen(false), []);
+  const closeSearch = useCallback(() => {
+    setSearchByTab((prev) => {
+      const current = prev[searchKey] ?? DEFAULT_SEARCH_STATE;
+      return { ...prev, [searchKey]: { ...current, open: false } };
+    });
+  }, [searchKey]);
+
+  const setSearchQuery = useCallback(
+    (query: string) => {
+      setSearchByTab((prev) => {
+        const current = prev[searchKey] ?? DEFAULT_SEARCH_STATE;
+        return { ...prev, [searchKey]: { ...current, query } };
+      });
+    },
+    [searchKey],
+  );
 
   return (
     <div className="viewer">
-      {searchOpen ? <SearchBar containerRef={scrollRef} onClose={closeSearch} /> : null}
+      {currentSearch.open ? (
+        <SearchBar
+          containerRef={scrollRef}
+          query={currentSearch.query}
+          focusToken={currentSearch.focusToken}
+          onQueryChange={setSearchQuery}
+          onClose={closeSearch}
+        />
+      ) : null}
       <div className="viewer-scroll" data-testid="viewer-scroll" ref={scrollRef}>
         <Suspense
           fallback={
