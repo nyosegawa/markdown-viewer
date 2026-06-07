@@ -45,6 +45,23 @@ describe("Toolbar", () => {
     expect(screen.getByTestId("mode-btn")).toBeDisabled();
   });
 
+  it("calls onCopySource when the markdown source copy button is clicked", async () => {
+    const props = { ...baseProps(), onCopySource: vi.fn() };
+    render(<Toolbar {...props} />);
+
+    const copyBtn = screen.getByRole("button", { name: "Copy markdown source" });
+    expect(copyBtn).not.toBeDisabled();
+    await userEvent.click(copyBtn);
+    expect(props.onCopySource).toHaveBeenCalledOnce();
+  });
+
+  it("disables source copy when no file is open", () => {
+    const props = { ...baseProps(), onCopySource: vi.fn() };
+    render(<Toolbar {...props} path={null} />);
+
+    expect(screen.getByTestId("copy-source-btn")).toBeDisabled();
+  });
+
   it("shows recent files in a menu", async () => {
     render(<Toolbar {...baseProps()} />);
     await userEvent.click(screen.getByRole("button", { name: "Open recent files" }));

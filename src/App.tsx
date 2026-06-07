@@ -76,6 +76,14 @@ function App() {
     }
   }, []);
 
+  const handleCopySource = useCallback((source: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      void navigator.clipboard.writeText(source).catch((err) => {
+        console.warn("clipboard source write failed", err);
+      });
+    }
+  }, []);
+
   const handleReveal = useCallback((path: string) => {
     void invokeRevealInFileManager(path).catch((err) => {
       console.warn("reveal failed", err);
@@ -284,6 +292,9 @@ function App() {
         onPickRecent={(p) => void handleOpenPath(p)}
         onClearRecent={clearRecent}
         onRenameActive={handleRenameActive}
+        onCopySource={() => {
+          if (activeTab) handleCopySource(activeTab.source);
+        }}
         onShowHelp={() => setHelpOpen(true)}
       />
 
