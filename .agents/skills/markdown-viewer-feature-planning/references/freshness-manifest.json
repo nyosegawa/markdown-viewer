@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "last_full_research_commit": "1b4e8ebdc97619b94fe3202a5c02c3ef5e4f74ab",
+  "last_full_research_at": "2026-06-07T09:20:26Z",
+  "last_checked_at": "2026-06-07T09:20:26Z",
+  "watched_files": {
+    "AGENTS.md": {
+      "sha256": "21de33b2f939b2f013e060ef7d7557bc5a09f2ea588393eb502e7b21843894d7",
+      "reason": "agent guidance and protected-file rules"
+    },
+    "README.md": {
+      "sha256": "b7ab1ea830b1e41dd04249cf5f05516173ab313a4be8a6ee8aab919a33db6e7c",
+      "reason": "project overview, development, CI, release, and install guidance"
+    },
+    "package.json": {
+      "sha256": "122c57161a4e65496b15885b28080476fcb239539ff46f0de31c0ef37123ca95",
+      "reason": "npm scripts and dependency surface"
+    },
+    "package-lock.json": {
+      "sha256": "686e708c97bbf7824d591a77f0790fe39ebcde2d82528d65f04cc3183af07ef9",
+      "reason": "locked npm dependency state"
+    },
+    "src-tauri/Cargo.toml": {
+      "sha256": "da22bdd12e3c5a5c630ffeb5b9b82439d7c64b6cd53898855227fc1a5df52d15",
+      "reason": "Rust dependencies, package metadata, and lint policy"
+    },
+    "src-tauri/Cargo.lock": {
+      "sha256": "450618a86516583b8a3f23462fd9381046d90360132a6323f45b864613e628fd",
+      "reason": "locked Rust dependency state"
+    },
+    "src-tauri/tauri.conf.json": {
+      "sha256": "a978248cebe52c5776d5fc7ee83fcc2aecfa350fd23986eef9c6381102ecad3c",
+      "reason": "Tauri bundle, build, and file association configuration"
+    },
+    "src-tauri/capabilities/default.json": {
+      "sha256": "f4368234bf76e80b54db3c50f1ad410de97a7c6380750866292cfa58fd21bb61",
+      "reason": "Tauri security capability surface"
+    },
+    "vite.config.ts": {
+      "sha256": "1f6e3a6d5cdeb2cb617dbf260357572bbef0e019ce586ca61ef4d028b7deaf3c",
+      "reason": "Vite dev server and bundle chunking"
+    },
+    "vitest.config.ts": {
+      "sha256": "54aec5ce0ba515503f6fb58489bb23951219d0062c814b9be0d9b82140745053",
+      "reason": "Vitest configuration"
+    },
+    "e2e/wdio.conf.ts": {
+      "sha256": "af57cb07d7f4dd1761e181453031abf4d2cf8956b82c3421ac7b1152655b54e4",
+      "reason": "E2E prerequisites and app launch behavior"
+    },
+    ".claude/settings.json": {
+      "sha256": "0bb65146b56c8d191af8db0ab91ee7f31efc1b1281ee24f03de613cdc8988c5e",
+      "reason": "Claude hook registration"
+    },
+    ".claude/hooks/pre-policy.sh": {
+      "sha256": "c44660a42cd1f0fc9c32aada370d17693edeace5b6fca5db70ae13b48a85adf2",
+      "reason": "protected-file enforcement"
+    },
+    ".claude/hooks/post-ts-lint.sh": {
+      "sha256": "01d557299bf066fd15febdec6b9022bc3d87d95a9829e1353ba5c00aa9782b5f",
+      "reason": "post-edit TypeScript/JavaScript/CSS lint behavior"
+    },
+    ".claude/hooks/stop-verify.sh": {
+      "sha256": "41160624e587b73f33cc089fe852c613ae48df4b73c28bfcd60dc5eaaf681bc8",
+      "reason": "completion gate behavior"
+    },
+    "src/App.tsx": {
+      "sha256": "05d605bf0ab433c4b29ba55149436dbe1e2a65efcc8dacfd138f7bae59664faf",
+      "reason": "application orchestration and open-file flow"
+    },
+    "src/hooks/useTabs.ts": {
+      "sha256": "af1edef2c27c4b8c4e817d206588d275a8503613c951c8b0998a69fed3e2f088",
+      "reason": "tab state, file watching, and view/edit state"
+    },
+    "src/lib/tauri.ts": {
+      "sha256": "6059241cd691303f46361cffde1c1d43816e8ee0b2a51566c6ad7d0b965b0827",
+      "reason": "frontend IPC wrapper contract"
+    },
+    "src-tauri/src/commands.rs": {
+      "sha256": "6da71c7a0de4c9c96c1b2735806510949f951a3e5c473b48873a5579197caef9",
+      "reason": "Rust command surface"
+    },
+    "src-tauri/src/watcher.rs": {
+      "sha256": "2a8fe7ae0d8f0ec384bc161fdd3d38faf5b343fbefe7737f0dc424f972ced09c",
+      "reason": "file watcher behavior"
+    },
+    "src-tauri/src/lib.rs": {
+      "sha256": "9fd23d11319156e2d5aaab356826b223cde3b26d04141e7779d71396ac12ef58",
+      "reason": "Tauri plugin setup and RunEvent handling"
+    },
+    "src-tauri/src/pending_open.rs": {
+      "sha256": "902d0f415bf7f50d3e252663e0e7e17418f832089305a1920d2d132c17c45dcf",
+      "reason": "cold-start opened-file buffering"
+    },
+    ".agents/skills/markdown-viewer-feature-planning/SKILL.md": {
+      "sha256": "10ac795b1068b1e412aacc6c9bb64587c8b8bd2082c6014572d5282207f935ef",
+      "reason": "feature planning skill workflow"
+    },
+    ".agents/skills/markdown-viewer-feature-planning/assets/research-template.md": {
+      "sha256": "213d288471b08da5b5a3fb977efe772390b4ad44f2fee2d69661cca6522ac2b6",
+      "reason": "research artifact template"
+    },
+    ".agents/skills/markdown-viewer-feature-planning/assets/plan-template.md": {
+      "sha256": "cad2d579e1e37643fc38e66c1941a7dd81d6b81212edcd9113a324609facfced",
+      "reason": "plan artifact template"
+    },
+    ".agents/skills/markdown-viewer-feature-planning/assets/todo-template.md": {
+      "sha256": "1520488f5be5134d98d1c21faafd3d7a8ffec9b2a1f48c73f67c48a06eea8855",
+      "reason": "phase-first todo artifact template"
+    },
+    ".agents/skills/markdown-viewer-feature-planning/assets/goal-prompt-template.md": {
+      "sha256": "2d76304e2876eaae2723b4f0d8bce1cf6d7d1af80b8298369458f05974a6f9b2",
+      "reason": "goal prompt template"
+    },
+    ".agents/skills/markdown-viewer-feature-planning/assets/freshness-manifest-template.json": {
+      "sha256": "3418fb06d4b86a432ef28b150990a486a2a493a872f8542fd3361308e29e231f",
+      "reason": "manifest template"
+    },
+    ".agents/skills/markdown-viewer-feature-planning/references/artifact-contract.md": {
+      "sha256": "3fee9d633444d4b42f6951efda475f60fa5b810fa9dce0176ff07b052e4d3afc",
+      "reason": "artifact shape contract"
+    },
+    ".agents/skills/markdown-viewer-feature-planning/references/freshness-policy.md": {
+      "sha256": "d8f6e84033c22650d34ebd5241d49048b739cc15408f009486b93c25e7fe8ed1",
+      "reason": "freshness policy"
+    },
+    ".agents/skills/markdown-viewer-feature-planning/references/repo-research-summary.md": {
+      "sha256": "388b8693279c796542ad49c3f1fbc9520d10bed3084b6308a4252651c8f19361",
+      "reason": "repo research summary"
+    },
+    ".agents/skills/markdown-viewer-feature-planning/references/review-rubric.md": {
+      "sha256": "136ed9bf0ba6884b7eec45a3c5a833efb9029ed1ac336e1acdcb7846fbad2ea3",
+      "reason": "planning review rubric"
+    },
+    ".agents/skills/markdown-viewer-feature-planning/scripts/validate-artifacts.mjs": {
+      "sha256": "234ec757d0792aa28f0950420f0c044e7fb704ab92d2481c96e32f76ace91f4a",
+      "reason": "artifact validator"
+    },
+    ".agents/skills/markdown-viewer-feature-planning/scripts/check-freshness.mjs": {
+      "sha256": "0dacbd63e6b6c371c96e34bd493ef62f78b614cf9b38ec11bd73e50995acb826",
+      "reason": "freshness checker"
+    },
+    ".agents/skills/markdown-viewer-feature-planning/agents/repo-guidance-researcher.md": {
+      "sha256": "402ff93508a1684cb6f4b6717674b49db5c23096e1940c848f598b9fc7ea9655",
+      "reason": "repo guidance subagent prompt"
+    },
+    ".agents/skills/markdown-viewer-feature-planning/agents/implementation-surface-researcher.md": {
+      "sha256": "a34ba62a4b6988d6ae124b9c925aefb247ba59389b7326d4d2f5242082b303ac",
+      "reason": "implementation surface subagent prompt"
+    },
+    ".agents/skills/markdown-viewer-feature-planning/agents/validation-researcher.md": {
+      "sha256": "85f863330bb282551ef8b7e2ec4871390403212c6c873004dec187a66c73a40a",
+      "reason": "validation subagent prompt"
+    },
+    ".agents/skills/markdown-viewer-feature-planning/agents/skill-design-reviewer.md": {
+      "sha256": "67b4f3cb707df9cb6890ac9e68f9e259aa0fb04122ae67ced7d23f2c58f0de47",
+      "reason": "planning artifact reviewer prompt"
+    }
+  },
+  "watched_globs": [
+    {
+      "glob": "docs/adr/*.md",
+      "reason": "architecture decision records",
+      "fingerprint": "559523603d82f1a2e1c753acc788c6cd4d0876c79b4e20fb5497587a17a2cfd5"
+    },
+    {
+      "glob": ".github/workflows/*.yml",
+      "reason": "CI and release workflow definitions",
+      "fingerprint": "df24d3a3e552f8fb659f39ba4ef7e619a533c0aa1795d4b06a1cfeb2f7efe591"
+    },
+    {
+      "glob": ".agents/skills/markdown-viewer-feature-planning/assets/*",
+      "reason": "feature planning templates",
+      "fingerprint": "4e1f347a73fb5fa7004c3429507cac8b481a1f42d1ef90ed3db1301d3af23c1e"
+    },
+    {
+      "glob": ".agents/skills/markdown-viewer-feature-planning/agents/*",
+      "reason": "subagent research prompts",
+      "fingerprint": "82ae3e3fd5b84276c3f7a907c765929b410878f2ccc65dec9f985143e6b7558f"
+    }
+  ],
+  "excluded_files": [
+    ".agents/skills/markdown-viewer-feature-planning/references/freshness-manifest.json",
+    "node_modules",
+    "dist",
+    "src-tauri/target"
+  ],
+  "refresh_policy": {
+    "fast_check_every_invocation": true,
+    "targeted_refresh_on_watched_change": true,
+    "full_refresh_on_structural_change": true
+  }
+}
+

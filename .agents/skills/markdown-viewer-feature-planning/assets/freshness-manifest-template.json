@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "last_full_research_commit": null,
+  "last_full_research_at": "<ISO-8601 timestamp>",
+  "last_checked_at": "<ISO-8601 timestamp>",
+  "watched_files": {
+    "AGENTS.md": {
+      "sha256": "<hash>",
+      "reason": "agent guidance"
+    }
+  },
+  "watched_globs": [],
+  "excluded_files": [
+    ".agents/skills/markdown-viewer-feature-planning/references/freshness-manifest.json"
+  ],
+  "refresh_policy": {
+    "fast_check_every_invocation": true,
+    "targeted_refresh_on_watched_change": true,
+    "full_refresh_on_structural_change": true
+  }
+}
+
