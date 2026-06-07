@@ -24,9 +24,22 @@ vi.mock("@/lib/markdown", async () => {
   return { ...actual, MarkdownRenderer: actual.SyncMarkdownRenderer };
 });
 
+vi.mock("@/components/Editor", () => ({
+  Editor: ({ value, onChange }: { value: string; onChange: (next: string) => void }) => (
+    <textarea
+      aria-label="Mock markdown editor"
+      data-testid="mock-editor"
+      value={value}
+      onChange={(e) => onChange(e.currentTarget.value)}
+    />
+  ),
+}));
+
 import App from "./App";
 
 describe("App", () => {
+  let clipboardWriteText: ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
     Object.values(tauriMocks).forEach((m) => {
       if (typeof m === "function" && "mockClear" in m) m.mockClear();
@@ -34,6 +47,11 @@ describe("App", () => {
     tauriMocks.openFileDialog.mockResolvedValue(null);
     tauriMocks.getCliPath.mockResolvedValue(null);
     tauriMocks.drainPendingOpenFiles.mockResolvedValue([]);
+    clipboardWriteText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: clipboardWriteText },
+    });
   });
 
   afterEach(() => {
@@ -69,6 +87,34 @@ describe("App", () => {
     const heading = await screen.findByRole("heading", { level: 1 });
     expect(heading).toHaveTextContent("From disk");
     expect(screen.getByTestId("title").textContent).toBe("readme.md");
+  });
+
+  it("copies the active markdown source from the toolbar in view mode", async () => {
+    tauriMocks.openFileDialog.mockResolvedValueOnce("/tmp/readme.md");
+    tauriMocks.invokeReadMarkdown.mockResolvedValueOnce("# From disk\n");
+
+    render(<App />);
+    await userEvent.click(screen.getByTestId("open-btn"));
+    await screen.findByRole("heading", { level: 1, name: "From disk" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Copy markdown source" }));
+    expect(clipboardWriteText).toHaveBeenCalledWith("# From disk\n");
+  });
+
+  it("copies in-memory edit mode source from the toolbar", async () => {
+    tauriMocks.openFileDialog.mockResolvedValueOnce("/tmp/readme.md");
+    tauriMocks.invokeReadMarkdown.mockResolvedValueOnce("# From disk\n");
+
+    render(<App />);
+    await userEvent.click(screen.getByTestId("open-btn"));
+    await screen.findByRole("heading", { level: 1, name: "From disk" });
+
+    await userEvent.click(screen.getByTestId("mode-btn"));
+    await userEvent.clear(screen.getByTestId("mock-editor"));
+    await userEvent.type(screen.getByTestId("mock-editor"), "edited source");
+    await userEvent.click(screen.getByRole("button", { name: "Copy markdown source" }));
+
+    expect(clipboardWriteText).toHaveBeenLastCalledWith("edited source");
   });
 
   it("opens any path stashed by Apple Events before the listener was wired up", async () => {
