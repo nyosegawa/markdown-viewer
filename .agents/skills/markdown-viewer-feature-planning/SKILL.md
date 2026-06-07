@@ -94,7 +94,11 @@ Create `todo.md` using `assets/todo-template.md`. Use phase-first execution:
 
 Review `research.md`, `plan.md`, and `todo.md` for contradictions, unsupported assumptions, missing validation, missing docs/update requirements, hidden deferred work, oversized phases, missing evidence fields, and repo rule violations. Fix artifacts before declaring them ready.
 
-### 7. Validate Artifacts
+### 7. Goal Prompt
+
+Create `goal-prompt.md` using `assets/goal-prompt-template.md`. It must be copy-paste-ready for Codex `/goal` and include absolute paths to `research.md`, `plan.md`, and `todo.md`, freshness result, phase-first execution rules, validation, independent review, commit, push, PR, CI follow-through, evidence, stop, and escalation rules.
+
+### 8. Validate Artifacts
 
 Run:
 
@@ -103,10 +107,6 @@ node .agents/skills/markdown-viewer-feature-planning/scripts/validate-artifacts.
 ```
 
 If validation fails, fix the artifacts and rerun. Do not declare the planning package ready until validation passes, or script execution is impossible and the manual contract check from `references/artifact-contract.md` is recorded with the reason.
-
-### 8. Goal Prompt
-
-Create `goal-prompt.md` using `assets/goal-prompt-template.md`. It must be copy-paste-ready for Codex `/goal` and include absolute paths to `research.md`, `plan.md`, and `todo.md`, freshness result, phase-first execution rules, validation, independent review, commit, push, PR, CI follow-through, evidence, stop, and escalation rules.
 
 ## Repo-Specific Hard Rules
 

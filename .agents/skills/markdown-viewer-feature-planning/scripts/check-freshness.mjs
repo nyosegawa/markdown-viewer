@@ -98,7 +98,10 @@ function main() {
       .map((file) => relative(root, resolve(file)))
       .filter((file) => !excluded.has(file))
       .sort();
-    const fingerprint = createHash("sha256").update(files.join("\n")).digest("hex");
+    const fingerprintInput = files
+      .map((file) => `${file}\0${sha256(file)}`)
+      .join("\n");
+    const fingerprint = createHash("sha256").update(fingerprintInput).digest("hex");
     if (entry.fingerprint && entry.fingerprint !== fingerprint) {
       globChanges.push({ glob: entry.glob, reason: entry.reason || "", before: entry.fingerprint, after: fingerprint, files });
     }
@@ -117,4 +120,3 @@ function main() {
 }
 
 main();
-

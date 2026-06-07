@@ -10,10 +10,11 @@ Implement the planned feature one TODO phase per iteration by default.
 
 # repo guidance paths
 
-- `/Users/sakasegawa/src/github.com/nyosegawa/markdown-viewer/AGENTS.md`
-- `/Users/sakasegawa/src/github.com/nyosegawa/markdown-viewer/README.md`
-- `/Users/sakasegawa/src/github.com/nyosegawa/markdown-viewer/docs/adr/`
-- `/Users/sakasegawa/src/github.com/nyosegawa/markdown-viewer/.agents/skills/markdown-viewer-feature-planning/references/repo-research-summary.md`
+- Replace `<repo-root>` with the absolute repository root when generating the final `goal-prompt.md`.
+- `<repo-root>/AGENTS.md`
+- `<repo-root>/README.md`
+- `<repo-root>/docs/adr/`
+- `<repo-root>/.agents/skills/markdown-viewer-feature-planning/references/repo-research-summary.md`
 
 # freshness policy and freshness result
 
@@ -83,4 +84,3 @@ Stop only when every TODO phase and task is complete, completion criteria are sa
 # escalation conditions
 
 Escalate when requirements conflict, architecture tradeoffs cannot be resolved from the plan, required validation needs unavailable resources, repo guidance conflicts, proceeding would require forbidden edits, or branch/worktree state makes safe commits impossible.
-

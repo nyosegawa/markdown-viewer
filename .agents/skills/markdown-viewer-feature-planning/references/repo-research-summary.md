@@ -30,7 +30,7 @@ The repo has `.claude/` hooks/settings but no existing `.agents/skills/` or `.cl
 - `docs/adr/0003-codemirror-for-edit-mode.md`
 - `docs/adr/0004-macos-file-associations.md`
 - `docs/adr/0005-multi-file-tabs.md`
-- `/Users/sakasegawa/.agents/agent-skill-best-practices.md`
+- Agent Skill authoring guidance provided in the meta-prompt context
 
 ## Agent Guidance And Existing Workflow
 

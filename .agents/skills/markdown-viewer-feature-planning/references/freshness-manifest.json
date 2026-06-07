@@ -2,7 +2,7 @@
   "schema_version": 1,
   "last_full_research_commit": "1b4e8ebdc97619b94fe3202a5c02c3ef5e4f74ab",
   "last_full_research_at": "2026-06-07T09:20:26Z",
-  "last_checked_at": "2026-06-07T09:20:26Z",
+  "last_checked_at": "2026-06-07T09:31:06Z",
   "watched_files": {
     "AGENTS.md": {
       "sha256": "21de33b2f939b2f013e060ef7d7557bc5a09f2ea588393eb502e7b21843894d7",
@@ -93,7 +93,7 @@
       "reason": "cold-start opened-file buffering"
     },
     ".agents/skills/markdown-viewer-feature-planning/SKILL.md": {
-      "sha256": "10ac795b1068b1e412aacc6c9bb64587c8b8bd2082c6014572d5282207f935ef",
+      "sha256": "dd03e949b983378e544273789ae015af27283174125fa4fbe5c531484147fe4b",
       "reason": "feature planning skill workflow"
     },
     ".agents/skills/markdown-viewer-feature-planning/assets/research-template.md": {
@@ -109,7 +109,7 @@
       "reason": "phase-first todo artifact template"
     },
     ".agents/skills/markdown-viewer-feature-planning/assets/goal-prompt-template.md": {
-      "sha256": "2d76304e2876eaae2723b4f0d8bce1cf6d7d1af80b8298369458f05974a6f9b2",
+      "sha256": "38f5ca1c12059c756b828f43afa585d1cdbca9518d5e8459324c2dbd4f8fdb44",
       "reason": "goal prompt template"
     },
     ".agents/skills/markdown-viewer-feature-planning/assets/freshness-manifest-template.json": {
@@ -125,7 +125,7 @@
       "reason": "freshness policy"
     },
     ".agents/skills/markdown-viewer-feature-planning/references/repo-research-summary.md": {
-      "sha256": "388b8693279c796542ad49c3f1fbc9520d10bed3084b6308a4252651c8f19361",
+      "sha256": "586b86658ce1be7dcfcc2480a6836eeca45122e1f3c5defd823a185dac999cc9",
       "reason": "repo research summary"
     },
     ".agents/skills/markdown-viewer-feature-planning/references/review-rubric.md": {
@@ -137,7 +137,7 @@
       "reason": "artifact validator"
     },
     ".agents/skills/markdown-viewer-feature-planning/scripts/check-freshness.mjs": {
-      "sha256": "0dacbd63e6b6c371c96e34bd493ef62f78b614cf9b38ec11bd73e50995acb826",
+      "sha256": "aa7441390c38ec2ae2aa58820dd7a35f1d5df6ca7d815d2dbda8c78cab29c87e",
       "reason": "freshness checker"
     },
     ".agents/skills/markdown-viewer-feature-planning/agents/repo-guidance-researcher.md": {
@@ -161,22 +161,22 @@
     {
       "glob": "docs/adr/*.md",
       "reason": "architecture decision records",
-      "fingerprint": "559523603d82f1a2e1c753acc788c6cd4d0876c79b4e20fb5497587a17a2cfd5"
+      "fingerprint": "9bd17fc691889fdf6bb5bea98c8e36bce6b47f483eb15818997b7a7f0c600212"
     },
     {
       "glob": ".github/workflows/*.yml",
       "reason": "CI and release workflow definitions",
-      "fingerprint": "df24d3a3e552f8fb659f39ba4ef7e619a533c0aa1795d4b06a1cfeb2f7efe591"
+      "fingerprint": "c53bc95c58b339e5639185bb09f8e90eaab97ac9b610b4815acf5efed1628fcd"
     },
     {
       "glob": ".agents/skills/markdown-viewer-feature-planning/assets/*",
       "reason": "feature planning templates",
-      "fingerprint": "4e1f347a73fb5fa7004c3429507cac8b481a1f42d1ef90ed3db1301d3af23c1e"
+      "fingerprint": "f4ade6edc09315212447f76ab71110348061ff22b102d7c598c7be029c1ac1a5"
     },
     {
       "glob": ".agents/skills/markdown-viewer-feature-planning/agents/*",
       "reason": "subagent research prompts",
-      "fingerprint": "82ae3e3fd5b84276c3f7a907c765929b410878f2ccc65dec9f985143e6b7558f"
+      "fingerprint": "1ffecafdad0884b41356b3a4bcbac7cb244dbb20a2cc02b1e9d85ad6d9fe10f8"
     }
   ],
   "excluded_files": [
@@ -191,4 +191,3 @@
     "full_refresh_on_structural_change": true
   }
 }
-
