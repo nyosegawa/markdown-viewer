@@ -1,27 +1,27 @@
 # Status Summary
 
-- Overall: implementation, local validation, and independent review complete; commit/push/PR/CI pending.
+- Overall: complete; follow-through evidence recorded.
 - Active phase: P001.
 - Last validation: `npm run lint`, `npm run typecheck`, `npm run test:run`, `(cd src-tauri && cargo test --lib)`, and `npm run tauri build` passed on 2026-06-07.
 - Last review: independent subagent review completed with no actionable issues.
 
 # Phase Checklist
 
-- [ ] P001 Toolbar source copy implementation
+- [x] P001 Toolbar source copy implementation
   - Goal: add a toolbar action that copies the active tab's current markdown source in both view and edit modes.
   - Scope: frontend UI, app handler, and focused tests.
   - Expected files/areas: `src/App.tsx`, `src/components/Toolbar.tsx`, `src/components/Toolbar.test.tsx`, `src/App.test.tsx`, optionally `src/styles/index.css`.
   - Validation: targeted Vitest during development, then `npm run lint`, `npm run typecheck`, `npm run test:run`, and `(cd src-tauri && cargo test --lib)`.
   - Review: independent review or fresh self-review of diff, tests, accessibility labels, and clipboard failure handling.
-  - Commit: commit after validation and review.
-  - Push: push the implementation branch after commit.
-  - PR/CI: create/update PR and watch GitHub Actions to concrete success or failure unless user waives.
+  - Commit: committed after validation and review.
+  - Push: pushed implementation branch.
+  - PR/CI: created PR and watched GitHub Actions to success.
   - Evidence:
     - Implementation: Added a right-side toolbar `Copy markdown source` icon button, wired `App` to copy `activeTab.source`, and added App/Toolbar tests for view-mode and edit-mode in-memory source copy.
     - Validation: `npm run lint` passed; `npm run typecheck` passed; targeted `npm run test:run -- src/components/Toolbar.test.tsx src/App.test.tsx` passed twice; `npm run test:run` passed 25 files / 187 tests; `(cd src-tauri && cargo test --lib)` passed 17 tests; `npm run tauri build` passed and produced `.app` plus DMG; `/Applications/markdown-viewer.app` replaced and launched as pid 7749.
     - Review: independent subagent review completed with no actionable issues; minor residual gap noted that rejected clipboard writes are not explicitly unit-tested, but the code catches rejections and mirrors existing path-copy handling.
-    - Commit: pending.
-    - Push: pending.
+    - Commit: implementation commit `970bcca Add toolbar markdown copy button`.
+    - Push: pushed `codex/toolbar-copy-source` to `origin`.
   - Tasks:
     - [x] T001 Add App-level source copy handler
       - Expected files/areas: `src/App.tsx`
@@ -35,7 +35,7 @@
     - [x] T004 Run validation and user-facing build/install checks
       - Expected files/areas: no code changes expected unless validation finds issues.
       - Validation note: run required test gates plus Tauri build/install/launch unless waived.
-    - [ ] T005 Commit, push, PR, and CI follow-through
+    - [x] T005 Commit, push, PR, and CI follow-through
       - Expected files/areas: git/GitHub only.
       - Validation note: record branch, commit hash, PR URL, and CI result.
 
@@ -55,7 +55,7 @@
 - [x] T004 Run validation and user-facing build/install checks
   - Expected files/areas: validation evidence only.
   - Validation note: include `npm run test:run && (cd src-tauri && cargo test --lib)`.
-- [ ] T005 Commit, push, PR, and CI follow-through
+- [x] T005 Commit, push, PR, and CI follow-through
   - Expected files/areas: git/GitHub evidence only.
   - Validation note: do not include unrelated working tree changes.
 
@@ -89,15 +89,24 @@
 
 # Commit Log
 
-- Pending.
+- `970bcca Add toolbar markdown copy button`: implementation, focused tests, and planning artifacts.
+- Branch: `codex/toolbar-copy-source`.
+- Push: `git push -u origin codex/toolbar-copy-source` succeeded.
+- PR: https://github.com/nyosegawa/markdown-viewer/pull/2
+- CI run: https://github.com/nyosegawa/markdown-viewer/actions/runs/27089034206
+- CI result: pass.
+  - `macos-latest / lint + test`: pass, 50s.
+  - `ubuntu-22.04 / lint + test`: pass, 1m26s.
+  - `windows-latest / lint + test`: pass, 2m46s.
+  - `e2e (linux)`: pass, 2m52s.
 
 # Final Checklist
 
-- [ ] Every phase is complete.
-- [ ] Every task is complete.
-- [ ] Completion criteria in `plan.md` are satisfied.
-- [ ] Required validation evidence is recorded.
-- [ ] Review evidence is recorded.
-- [ ] Commit evidence is recorded when commits were required.
-- [ ] Push evidence is recorded when push was required.
-- [ ] PR and CI evidence is recorded when applicable.
+- [x] Every phase is complete.
+- [x] Every task is complete.
+- [x] Completion criteria in `plan.md` are satisfied.
+- [x] Required validation evidence is recorded.
+- [x] Review evidence is recorded.
+- [x] Commit evidence is recorded when commits were required.
+- [x] Push evidence is recorded when push was required.
+- [x] PR and CI evidence is recorded when applicable.
