@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "last_full_research_commit": "1b4e8ebdc97619b94fe3202a5c02c3ef5e4f74ab",
+  "last_full_research_commit": "b2ea5245f2590fdbdc2c56faee7879310bb466b7",
   "last_full_research_at": "2026-06-07T09:20:26Z",
-  "last_checked_at": "2026-06-07T09:31:06Z",
+  "last_checked_at": "2026-06-08T05:38:14.493Z",
   "watched_files": {
     "AGENTS.md": {
       "sha256": "21de33b2f939b2f013e060ef7d7557bc5a09f2ea588393eb502e7b21843894d7",
@@ -65,7 +65,7 @@
       "reason": "completion gate behavior"
     },
     "src/App.tsx": {
-      "sha256": "05d605bf0ab433c4b29ba55149436dbe1e2a65efcc8dacfd138f7bae59664faf",
+      "sha256": "95a6eb98240b24a06ed74cd59983f118e30824ed30db93da4cb91c4afc0a7176",
       "reason": "application orchestration and open-file flow"
     },
     "src/hooks/useTabs.ts": {
@@ -93,11 +93,11 @@
       "reason": "cold-start opened-file buffering"
     },
     ".agents/skills/markdown-viewer-feature-planning/SKILL.md": {
-      "sha256": "dd03e949b983378e544273789ae015af27283174125fa4fbe5c531484147fe4b",
+      "sha256": "3dafce2f06caf371f2a01d66b2f7690fbb9afa89b6b453cf9099bfa086414552",
       "reason": "feature planning skill workflow"
     },
     ".agents/skills/markdown-viewer-feature-planning/assets/research-template.md": {
-      "sha256": "213d288471b08da5b5a3fb977efe772390b4ad44f2fee2d69661cca6522ac2b6",
+      "sha256": "8f26c12acb5f3029b2e3696cba607b10c7d1948eb9772cd1204421a26799dd5a",
       "reason": "research artifact template"
     },
     ".agents/skills/markdown-viewer-feature-planning/assets/plan-template.md": {
@@ -105,11 +105,11 @@
       "reason": "plan artifact template"
     },
     ".agents/skills/markdown-viewer-feature-planning/assets/todo-template.md": {
-      "sha256": "1520488f5be5134d98d1c21faafd3d7a8ffec9b2a1f48c73f67c48a06eea8855",
+      "sha256": "a6f7845962177433bac00441051b369f5232f480094a10912494c2b79c2614ee",
       "reason": "phase-first todo artifact template"
     },
     ".agents/skills/markdown-viewer-feature-planning/assets/goal-prompt-template.md": {
-      "sha256": "38f5ca1c12059c756b828f43afa585d1cdbca9518d5e8459324c2dbd4f8fdb44",
+      "sha256": "975ffc182f7ca82c295c7567abe94ae20aa48f009398b3319adf3a624cf27bc5",
       "reason": "goal prompt template"
     },
     ".agents/skills/markdown-viewer-feature-planning/assets/freshness-manifest-template.json": {
@@ -117,7 +117,7 @@
       "reason": "manifest template"
     },
     ".agents/skills/markdown-viewer-feature-planning/references/artifact-contract.md": {
-      "sha256": "3fee9d633444d4b42f6951efda475f60fa5b810fa9dce0176ff07b052e4d3afc",
+      "sha256": "8a2ea8ff63814c51876462a4005cddc7c059156318d802689073d0752babb1df",
       "reason": "artifact shape contract"
     },
     ".agents/skills/markdown-viewer-feature-planning/references/freshness-policy.md": {
@@ -133,7 +133,7 @@
       "reason": "planning review rubric"
     },
     ".agents/skills/markdown-viewer-feature-planning/scripts/validate-artifacts.mjs": {
-      "sha256": "234ec757d0792aa28f0950420f0c044e7fb704ab92d2481c96e32f76ace91f4a",
+      "sha256": "333e47f2349cce3503ffe5b33c7aa5c573c07ca894b223265418fc4104240a12",
       "reason": "artifact validator"
     },
     ".agents/skills/markdown-viewer-feature-planning/scripts/check-freshness.mjs": {
@@ -171,7 +171,7 @@
     {
       "glob": ".agents/skills/markdown-viewer-feature-planning/assets/*",
       "reason": "feature planning templates",
-      "fingerprint": "f4ade6edc09315212447f76ab71110348061ff22b102d7c598c7be029c1ac1a5"
+      "fingerprint": "a6535b102719b26502174b912c7cee6768a13b115f043190e0ce414af0d102bf"
     },
     {
       "glob": ".agents/skills/markdown-viewer-feature-planning/agents/*",

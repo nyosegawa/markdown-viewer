@@ -13,6 +13,14 @@
 - Refresh decision:
 - Manifest update:
 
+# Branch Setup
+
+- Branch:
+- Branch source:
+- Remote:
+- Worktree safety:
+- Blockers:
+
 # Investigation Method
 
 - Repo-local research:
@@ -81,4 +89,3 @@
 # Remaining Unknowns
 
 - 
-

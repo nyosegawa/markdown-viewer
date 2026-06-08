@@ -47,7 +47,7 @@ Use these templates:
 
 ## Workflow
 
-### 0. Freshness Check
+### 1. Freshness Check
 
 Before relying on stored repo guidance:
 
@@ -59,15 +59,26 @@ Before relying on stored repo guidance:
 6. Do not update `references/freshness-manifest.json` until all refresh edits are complete.
 7. After creating `.agent-work/features/<date>-<slug>/research.md`, record the freshness outcome in its `Freshness Check` section.
 
-### 1. Specify
+### 2. Branch Setup
+
+Use one branch for both planning and implementation. Do not create a separate planning-only branch.
+
+1. Inspect branch conventions with `git branch`, `git status --short --branch`, and recent commit or branch names when needed.
+2. If the user provides a branch name, use it exactly. Otherwise derive a concise branch name from the feature slug, following discovered repo conventions.
+3. Create or switch to that branch before writing planning artifacts.
+4. Verify the current worktree does not contain unrelated changes that would make a safe planning commit impossible.
+5. Record the branch decision, current remote, and blockers in working notes. Write them into `research.md` and `todo.md`.
+6. Ensure the generated `/goal` prompt instructs implementation to continue on this same branch.
+
+### 3. Specify
 
 Create the feature artifact directory under `.agent-work/features/<date>-<slug>/`. Extract the user's request, need, affected users/systems/surfaces, success criteria, non-goals, completion criteria, and expected validation evidence.
 
-### 2. Clarify
+### 4. Clarify
 
 Ask only questions that materially affect planning. If the user asked for autonomous planning, make conservative assumptions and write them into `plan.md`.
 
-### 3. Research
+### 5. Research
 
 Research the repo before finalizing the plan. Use subagents when available and useful; default to four lanes and up to three rounds:
 
@@ -78,11 +89,11 @@ Research the repo before finalizing the plan. Use subagents when available and u
 
 Use web/current-state research when external or time-sensitive facts affect the plan. Record sources in `research.md`, or state why live research was skipped.
 
-### 4. Plan
+### 6. Plan
 
 Create `plan.md` using `assets/plan-template.md`. Include repo-specific constraints, design decisions, validation, commit, push, PR, and CI follow-through expectations.
 
-### 5. Tasks
+### 7. Tasks
 
 Create `todo.md` using `assets/todo-template.md`. Use phase-first execution:
 
@@ -90,15 +101,17 @@ Create `todo.md` using `assets/todo-template.md`. Use phase-first execution:
 - tasks live inside phases
 - split to task-level execution only when a phase is too large, mixes unrelated responsibilities, has incompatible validation, or cannot be reviewed/committed coherently
 
-### 6. Analyze
+### 8. Analyze
 
 Review `research.md`, `plan.md`, and `todo.md` for contradictions, unsupported assumptions, missing validation, missing docs/update requirements, hidden deferred work, oversized phases, missing evidence fields, and repo rule violations. Fix artifacts before declaring them ready.
 
-### 7. Goal Prompt
+### 9. Goal Prompt
 
 Create `goal-prompt.md` using `assets/goal-prompt-template.md`. It must be copy-paste-ready for Codex `/goal` and include absolute paths to `research.md`, `plan.md`, and `todo.md`, freshness result, phase-first execution rules, validation, independent review, commit, push, PR, CI follow-through, evidence, stop, and escalation rules.
 
-### 8. Validate Artifacts
+Keep `goal-prompt.md` at 4000 characters or fewer. Refer to `research.md`, `plan.md`, and `todo.md` for detail instead of duplicating long content.
+
+### 10. Validate Artifacts
 
 Run:
 
@@ -107,6 +120,14 @@ node .agents/skills/markdown-viewer-feature-planning/scripts/validate-artifacts.
 ```
 
 If validation fails, fix the artifacts and rerun. Do not declare the planning package ready until validation passes, or script execution is impossible and the manual contract check from `references/artifact-contract.md` is recorded with the reason.
+
+After `research.md`, `plan.md`, `todo.md`, and `goal-prompt.md` are complete and validation passes:
+
+1. Commit the planning artifacts as one planning package when git is available and the worktree can be committed safely.
+2. Use a concise imperative commit message, such as `Plan <feature slug>`.
+3. If a remote exists and push is possible, push the branch.
+4. Record branch name, planning commit hash, remote, push result, and blockers in `todo.md`.
+5. If branch creation, commit, or push is blocked by missing git repo, dirty unrelated changes, authentication, missing remote, branch protection, or network failure, record the exact blocker in `research.md` or `todo.md` and report it. Do not silently continue as if planning was shared.
 
 ## Repo-Specific Hard Rules
 

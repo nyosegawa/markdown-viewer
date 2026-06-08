@@ -6,6 +6,7 @@ const requiredSections = {
   "research.md": [
     "Scope",
     "Freshness Check",
+    "Branch Setup",
     "Investigation Method",
     "Subagent Rounds",
     "Sources Inspected",
@@ -39,6 +40,7 @@ const requiredSections = {
   ],
   "todo.md": [
     "Status Summary",
+    "Branch And Planning Commit",
     "Phase Checklist",
     "Task Checklist By Phase",
     "Implementation Notes",
@@ -51,6 +53,7 @@ const requiredSections = {
     "/goal command",
     "source artifact paths",
     "repo guidance paths",
+    "branch and planning commit",
     "freshness policy and freshness result",
     "execution rules",
     "validation rules",
@@ -79,9 +82,22 @@ const requiredPhaseFields = [
 ];
 
 const requiredGoalPaths = ["research.md", "plan.md", "todo.md"];
+const maxGoalPromptCharacters = 4000;
+
+const requiredTodoBranchFields = [
+  "Branch",
+  "Planning commit",
+  "Remote",
+  "Push result",
+  "Blockers",
+];
 
 function normalizeHeading(value) {
   return value.trim().replace(/:$/, "").replace(/\s+/g, " ").toLowerCase();
+}
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function markdownHeadings(markdown) {
@@ -120,11 +136,33 @@ function phaseBlocks(todo) {
   return blocks.map((block) => block.join("\n"));
 }
 
+function fieldValue(markdown, field) {
+  const escaped = escapeRegex(field);
+  const match = new RegExp(`^\\s*-\\s*${escaped}:\\s*(.*)$`, "im").exec(markdown);
+  return match ? match[1].trim() : null;
+}
+
+function validateTodoBranchAndCommit(todo, errors) {
+  for (const field of requiredTodoBranchFields) {
+    if (fieldValue(todo, field) === null) {
+      errors.push(`todo.md: missing Branch And Planning Commit field '${field}:'`);
+    }
+  }
+
+  const branch = fieldValue(todo, "Branch");
+  if (branch !== null && branch.length === 0) {
+    errors.push("todo.md: Branch And Planning Commit field 'Branch:' must include a branch name");
+  }
+
+  return branch || null;
+}
+
 function validateTodo(todo, errors) {
+  const branch = validateTodoBranchAndCommit(todo, errors);
   const phases = phaseBlocks(todo);
   if (phases.length === 0) {
     errors.push("todo.md: missing at least one '- [ ] P### <title>' phase entry");
-    return;
+    return branch;
   }
 
   phases.forEach((phase, index) => {
@@ -140,6 +178,8 @@ function validateTodo(todo, errors) {
       errors.push(`${label}: invalid phase checkbox/id/title`);
     }
   });
+
+  return branch;
 }
 
 function validateGoalPaths(goalPrompt, artifactDir, errors) {
@@ -148,6 +188,25 @@ function validateGoalPaths(goalPrompt, artifactDir, errors) {
     if (!goalPrompt.includes(absPath)) {
       errors.push(`goal-prompt.md: missing absolute path ${absPath}`);
     }
+  }
+}
+
+function validateGoalPrompt(goalPrompt, artifactDir, branch, errors) {
+  const characterCount = [...goalPrompt].length;
+  if (characterCount > maxGoalPromptCharacters) {
+    errors.push(
+      `goal-prompt.md: ${characterCount} characters exceeds ${maxGoalPromptCharacters} character limit`,
+    );
+  }
+
+  validateGoalPaths(goalPrompt, artifactDir, errors);
+
+  if (branch && !goalPrompt.includes(branch)) {
+    errors.push(`goal-prompt.md: missing branch name '${branch}'`);
+  }
+
+  if (!/\bsame branch\b|同じ\s*branch|同一\s*branch|continue implementation on this same branch/i.test(goalPrompt)) {
+    errors.push("goal-prompt.md: missing same-branch implementation rule");
   }
 }
 
@@ -178,8 +237,8 @@ function main() {
     }
   }
 
-  if (contents["todo.md"]) validateTodo(contents["todo.md"], errors);
-  if (contents["goal-prompt.md"]) validateGoalPaths(contents["goal-prompt.md"], artifactDir, errors);
+  const branch = contents["todo.md"] ? validateTodo(contents["todo.md"], errors) : null;
+  if (contents["goal-prompt.md"]) validateGoalPrompt(contents["goal-prompt.md"], artifactDir, branch, errors);
 
   if (errors.length > 0) {
     console.error(`Artifact validation failed for ${artifactDir}`);
@@ -191,4 +250,3 @@ function main() {
 }
 
 main();
-

@@ -5,6 +5,14 @@
 - Last validation:
 - Last review:
 
+# Branch And Planning Commit
+
+- Branch:
+- Planning commit:
+- Remote:
+- Push result:
+- Blockers:
+
 # Phase Checklist
 
 - [ ] P001 <phase title>
@@ -57,4 +65,3 @@
 - [ ] Commit evidence is recorded when commits were required.
 - [ ] Push evidence is recorded when push was required.
 - [ ] PR and CI evidence is recorded when applicable.
-
