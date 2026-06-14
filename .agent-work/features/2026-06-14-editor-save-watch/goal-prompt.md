@@ -18,9 +18,9 @@ Implement the planned `editor-save-watch` feature from `todo.md`, one phase per 
 # branch and planning commit
 
 - Branch: `codex/editor-save-watch-plan`
-- Planning commit: pending
+- Planning commit: `58436dd`
 - Remote: `origin ssh://git@github.com/nyosegawa/markdown-viewer.git`
-- Push result: pending
+- Push result: pushed to `origin` and upstream set
 - Continue implementation on this same branch. Do not create a separate implementation branch unless the user explicitly redirects.
 
 # freshness policy and freshness result
