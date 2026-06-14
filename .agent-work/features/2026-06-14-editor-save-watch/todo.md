@@ -1,9 +1,9 @@
 # Status Summary
 
-- Overall: P001 and P002 complete; P003 next.
-- Active phase: P003.
-- Last validation: `npm run lint`, `npm run typecheck`, `npm run test:run`, and `(cd src-tauri && cargo test --lib)` passed after P002.
-- Last review: P002 self-review completed; autosave state is centralized in `useTabs`, IPC remains thin, and save failures preserve local drafts.
+- Overall: P001, P002, and P003 complete; final commit/push/PR/CI follow-through pending.
+- Active phase: Final follow-through.
+- Last validation: full validation, `npm run tauri build`, `/Applications/markdown-viewer.app` replacement, and installed-app launch verification passed after P003.
+- Last review: P003 self-review completed; stale reads, self-save watcher events, and dirty external conflicts are covered by tests.
 
 # Branch And Planning Commit
 
@@ -54,7 +54,7 @@
     - Implementation: Added `write_markdown` Rust command and TS wrapper; extended tab save metadata; implemented debounced autosave; added save/error/conflict status display.
     - Validation: `npm run lint`, `npm run typecheck`, `npm run test:run`, and `(cd src-tauri && cargo test --lib)` passed.
     - Review: Confirmed Rust only performs thin file write; debounce/save/error/conflict policy lives in frontend; failed saves keep local source.
-    - Commit:
+    - Commit: `6fe4d6f` Add edit autosave lifecycle
     - Push:
   - Tasks:
     - [x] T004 Add `write_markdown` command and wrapper
@@ -70,7 +70,7 @@
       - Expected files/areas: `src/App.tsx`, `src/components/Toolbar.tsx`, CSS if needed
       - Validation note: Component tests or accessible status assertion.
 
-- [ ] P003 External refresh reliability and end-to-end verification
+- [x] P003 External refresh reliability and end-to-end verification
   - Goal: Make external editor changes reflect quickly without overwriting local dirty drafts or reacting badly to this app's own saves.
   - Scope: File-changed coalescing/read retry/stale token handling, conflict behavior, integration-style tests, full validation/build/install/CI.
   - Expected files/areas: `src/hooks/useTabs.ts`, `src/hooks/useTabs.test.tsx`, `src-tauri/src/watcher.rs`, optional E2E/manual smoke notes.
@@ -80,22 +80,22 @@
   - Push: Push branch and create/update PR.
   - PR/CI: Create PR and watch GitHub Actions to concrete success/failure.
   - Evidence:
-    - Implementation:
-    - Validation:
-    - Review:
+    - Implementation: Added coalesced file-change refresh, stale read tokens, own-save reconciliation, dirty conflict preservation, and race-focused tests.
+    - Validation: `npm run lint`, `npm run typecheck`, `npm run test:run`, `(cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test --lib)`, `npm run tauri build`, `/Applications/markdown-viewer.app` replacement, and installed app launch check passed.
+    - Review: Fresh self-review focused on data-loss risks; clean tabs refresh, dirty drafts are preserved, and own-save watcher events do not overwrite newer drafts.
     - Commit:
     - Push:
   - Tasks:
-    - [ ] T008 Coalesce watcher refreshes and guard stale async reads
+    - [x] T008 Coalesce watcher refreshes and guard stale async reads
       - Expected files/areas: `src/hooks/useTabs.ts`
       - Validation note: Tests with out-of-order read promises.
-    - [ ] T009 Distinguish own-save refresh from external refresh
+    - [x] T009 Distinguish own-save refresh from external refresh
       - Expected files/areas: `src/hooks/useTabs.ts`
       - Validation note: Tests that own-save watcher events do not reset editor unnecessarily.
-    - [ ] T010 Preserve dirty drafts on external conflicts
+    - [x] T010 Preserve dirty drafts on external conflicts
       - Expected files/areas: `src/hooks/useTabs.ts`, UI status surface
       - Validation note: Test dirty local source remains intact when disk changes externally.
-    - [ ] T011 Run full user-facing app validation and release-local install
+    - [x] T011 Run full user-facing app validation and release-local install
       - Expected files/areas: build/install artifacts, no generated files committed
       - Validation note: Record exact commands and installed app launch result.
 
@@ -130,16 +130,16 @@
 
 ## P003 External refresh reliability and end-to-end verification
 
-- [ ] T008 Coalesce watcher refreshes and guard stale async reads
+- [x] T008 Coalesce watcher refreshes and guard stale async reads
   - Expected files/areas: `src/hooks/useTabs.ts`
   - Validation note: Tests with out-of-order read promises.
-- [ ] T009 Distinguish own-save refresh from external refresh
+- [x] T009 Distinguish own-save refresh from external refresh
   - Expected files/areas: `src/hooks/useTabs.ts`
   - Validation note: Tests that own-save watcher events do not reset editor unnecessarily.
-- [ ] T010 Preserve dirty drafts on external conflicts
+- [x] T010 Preserve dirty drafts on external conflicts
   - Expected files/areas: `src/hooks/useTabs.ts`, UI status surface
   - Validation note: Test dirty local source remains intact when disk changes externally.
-- [ ] T011 Run full user-facing app validation and release-local install
+- [x] T011 Run full user-facing app validation and release-local install
   - Expected files/areas: build/install artifacts, no generated files committed
   - Validation note: Record exact commands and installed app launch result.
 
@@ -156,25 +156,28 @@
 - Planning artifact validation passed with `node .agents/skills/markdown-viewer-feature-planning/scripts/validate-artifacts.mjs .agent-work/features/2026-06-14-editor-save-watch`.
 - P001 validation passed with `npm run test:run` (`25 passed`, `188 passed`).
 - P002 validation passed with `npm run lint`, `npm run typecheck`, `npm run test:run` (`25 passed`, `193 passed`), and `(cd src-tauri && cargo test --lib)` (`18 passed`).
+- P003 validation passed with `npm run lint`, `npm run typecheck`, `npm run test:run` (`25 passed`, `195 passed`), `(cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test --lib)`, `npm run tauri build`, replacement of `/Applications/markdown-viewer.app`, and installed-app launch verification via `open -na /Applications/markdown-viewer.app` plus `pgrep -fl markdown-viewer`.
 
 # Review Evidence
 
 - Planning self-review found the package covers scope, freshness, branch setup, repo constraints, phase-first tasks, validation, commit/push/PR/CI expectations, and stop/escalation rules.
 - P001 self-review: ADR supersedes ADR 0003's in-memory edit policy; view copy emits rendered text and line breaks; toolbar source-copy behavior is unchanged and explicit.
 - P002 self-review: write IPC is thin; autosave runs from `useTabs`; save failure and external conflict keep local draft instead of overwriting.
+- P003 self-review: file-change refreshes are coalesced; stale read results are ignored; own-save watcher events do not reset newer drafts; external dirty conflicts stop autosave and keep local text visible.
 
 # Commit Log
 
 - `58436dd` Plan editor save watch fixes
 - `b61e2bf` Fix view copy behavior
+- `6fe4d6f` Add edit autosave lifecycle
 
 # Final Checklist
 
-- [ ] Every phase is complete.
-- [ ] Every task is complete.
-- [ ] Completion criteria in `plan.md` are satisfied.
-- [ ] Required validation evidence is recorded.
-- [ ] Review evidence is recorded.
+- [x] Every phase is complete.
+- [x] Every task is complete.
+- [x] Completion criteria in `plan.md` are satisfied.
+- [x] Required validation evidence is recorded.
+- [x] Review evidence is recorded.
 - [ ] Commit evidence is recorded when commits were required.
 - [ ] Push evidence is recorded when push was required.
 - [ ] PR and CI evidence is recorded when applicable.

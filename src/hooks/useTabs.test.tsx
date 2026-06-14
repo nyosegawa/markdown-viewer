@@ -448,4 +448,79 @@ describe("useTabs", () => {
     expect(mocks.invokeWriteMarkdown).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
+
+  it("ignores stale out-of-order file-changed reads", async () => {
+    mocks.invokeReadMarkdown.mockResolvedValueOnce("a1");
+    let registered: ((path: string, canonicalPath?: string) => void) | null = null;
+    mocks.listenFileChanged.mockImplementation(async (handler) => {
+      registered = handler;
+      return () => {};
+    });
+    const { result } = renderHook(() => useTabs());
+    await waitFor(() => expect(registered).not.toBeNull());
+    vi.useFakeTimers();
+
+    await act(async () => {
+      await result.current.openPath("/a.md");
+    });
+
+    let resolveFirst: (value: string) => void = () => undefined;
+    let resolveSecond: (value: string) => void = () => undefined;
+    mocks.invokeReadMarkdown
+      .mockReturnValueOnce(new Promise<string>((resolve) => (resolveFirst = resolve)))
+      .mockReturnValueOnce(new Promise<string>((resolve) => (resolveSecond = resolve)));
+
+    await act(async () => {
+      registered?.("/a.md");
+      await vi.advanceTimersByTimeAsync(60);
+      registered?.("/a.md");
+      await vi.advanceTimersByTimeAsync(60);
+      resolveSecond("a3");
+      await Promise.resolve();
+    });
+    expect(result.current.tabs[0]?.source).toBe("a3");
+
+    await act(async () => {
+      resolveFirst("a2");
+      await Promise.resolve();
+    });
+    expect(result.current.tabs[0]?.source).toBe("a3");
+    vi.useRealTimers();
+  });
+
+  it("does not overwrite a newer dirty draft when a watcher event reports this app's last save", async () => {
+    mocks.invokeReadMarkdown.mockResolvedValueOnce("orig");
+    let registered: ((path: string, canonicalPath?: string) => void) | null = null;
+    mocks.listenFileChanged.mockImplementation(async (handler) => {
+      registered = handler;
+      return () => {};
+    });
+    const { result } = renderHook(() => useTabs());
+    await waitFor(() => expect(registered).not.toBeNull());
+    vi.useFakeTimers();
+
+    await act(async () => {
+      await result.current.openPath("/a.md");
+    });
+    act(() => result.current.setActiveSource("first save"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+      await Promise.resolve();
+    });
+    expect(result.current.tabs[0]?.saveStatus).toBe("saved");
+
+    act(() => result.current.setActiveSource("new draft"));
+    mocks.invokeReadMarkdown.mockResolvedValueOnce("first save");
+    await act(async () => {
+      registered?.("/a.md");
+      await vi.advanceTimersByTimeAsync(60);
+      await Promise.resolve();
+    });
+
+    expect(result.current.tabs[0]?.source).toBe("new draft");
+    expect(result.current.tabs[0]?.savedSource).toBe("first save");
+    expect(result.current.tabs[0]?.saveStatus).toBe("dirty");
+    expect(result.current.tabs[0]?.conflictSource).toBeNull();
+    vi.useRealTimers();
+  });
 });

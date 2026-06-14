@@ -172,7 +172,11 @@ export function useTabs() {
     }
 
     if (latestSaveSeqRef.current.get(id) !== seq) return;
-    let reschedule = false;
+    const currentAfterSave = stateRef.current.tabs.find((t) => t.id === id && t.path === path);
+    const shouldReschedule =
+      currentAfterSave !== undefined &&
+      currentAfterSave.source !== source &&
+      currentAfterSave.conflictSource === null;
     setState((prev) => ({
       ...prev,
       tabs: prev.tabs.map((t) => {
@@ -188,7 +192,6 @@ export function useTabs() {
             lastWrittenSource: source,
           };
         }
-        reschedule = true;
         return {
           ...t,
           savedSource: source,
@@ -199,7 +202,7 @@ export function useTabs() {
         };
       }),
     }));
-    if (reschedule) scheduleAutosave(id);
+    if (shouldReschedule) scheduleAutosave(id);
   }
 
   async function refreshTabFromDiskInner(id: string) {
@@ -226,6 +229,11 @@ export function useTabs() {
     }
 
     if (latestRefreshSeqRef.current.get(id) !== seq) return;
+    const currentBeforeApply = stateRef.current.tabs.find((t) => t.id === id && t.path === path);
+    const shouldClearSaveTimer =
+      currentBeforeApply?.dirty === true &&
+      currentBeforeApply.source !== diskSource &&
+      currentBeforeApply.lastWrittenSource !== diskSource;
     setState((prev) => ({
       ...prev,
       tabs: prev.tabs.map((t) => {
@@ -238,8 +246,7 @@ export function useTabs() {
             saveStatus: t.saveStatus === "saving" ? t.saveStatus : "saved",
             lastSaveError: null,
             conflictSource: null,
-            lastWrittenSource:
-              diskSource === t.lastWrittenSource ? t.lastWrittenSource : t.lastWrittenSource,
+            lastWrittenSource: t.lastWrittenSource,
           };
         }
         if (t.dirty) {
@@ -252,7 +259,6 @@ export function useTabs() {
               lastSaveError: null,
             };
           }
-          clearSaveTimer(id);
           return {
             ...t,
             savedSource: diskSource,
@@ -276,6 +282,7 @@ export function useTabs() {
         };
       }),
     }));
+    if (shouldClearSaveTimer) clearSaveTimer(id);
   }
 
   const openPath = useCallback(async (path: string): Promise<string | null> => {
@@ -600,7 +607,7 @@ export function useTabs() {
                   error: null,
                   dirty,
                   saveStatus: dirty ? (t.conflictSource ? "conflict" : "dirty") : "saved",
-                  lastSaveError: dirty ? t.lastSaveError : null,
+                  lastSaveError: dirty ? (t.conflictSource ? t.lastSaveError : null) : null,
                   conflictSource: dirty ? t.conflictSource : null,
                 }
               : t,
