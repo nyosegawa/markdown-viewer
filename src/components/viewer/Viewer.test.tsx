@@ -267,7 +267,7 @@ describe("Viewer", () => {
     }
   });
 
-  it("copy rewrites clipboard text/plain with the original markdown source", async () => {
+  it("copy writes rendered plain text instead of markdown source", async () => {
     const source = "# Title\n\nfirst paragraph with **bold** word.\n\nsecond paragraph.\n";
     await renderViewer(source);
 
@@ -292,10 +292,31 @@ describe("Viewer", () => {
     });
     firstP?.dispatchEvent(event);
 
-    // Block granularity: copying inside a paragraph yields the whole paragraph
-    // source, which matches the markdown file exactly (including `**bold**`).
-    expect(data.getData("text/plain")).toContain("**bold**");
-    expect(data.getData("text/plain")).toContain("first paragraph");
+    expect(data.getData("text/plain")).toBe("first paragraph with bold word.");
+    expect(data.getData("text/plain")).not.toContain("**bold**");
     expect(data.getData("text/plain")).not.toContain("second paragraph");
+  });
+
+  it("copy preserves line breaks across rendered blocks", async () => {
+    const source = "# Title\n\nfirst paragraph.\n\nsecond paragraph.\n";
+    await renderViewer(source);
+
+    const body = screen.getByTestId("markdown-body");
+    const selection = window.getSelection();
+    expect(selection).not.toBeNull();
+    const range = document.createRange();
+    range.selectNodeContents(body);
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+
+    const data = new DataTransfer();
+    const event = new ClipboardEvent("copy", {
+      bubbles: true,
+      cancelable: true,
+      clipboardData: data,
+    });
+    body.dispatchEvent(event);
+
+    expect(data.getData("text/plain")).toBe("Title\n\nfirst paragraph.\n\nsecond paragraph.");
   });
 });

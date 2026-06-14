@@ -1,9 +1,9 @@
 # Status Summary
 
-- Overall: Planning artifacts validated; planning commit/push pending.
-- Active phase: P001.
-- Last validation: `node .agents/skills/markdown-viewer-feature-planning/scripts/validate-artifacts.mjs .agent-work/features/2026-06-14-editor-save-watch` passed.
-- Last review: Planning self-review completed against required artifact contract and review rubric.
+- Overall: P001 complete; P002 next.
+- Active phase: P002.
+- Last validation: `npm run test:run` passed after P001.
+- Last review: P001 self-review completed; view copy now writes rendered text while toolbar source copy remains explicit.
 
 # Branch And Planning Commit
 
@@ -15,7 +15,7 @@
 
 # Phase Checklist
 
-- [ ] P001 Copy behavior and autosave ADR
+- [x] P001 Copy behavior and autosave ADR
   - Goal: Make the product contract explicit and remove Markdown-source interception from normal view copy.
   - Scope: ADR plus view copy implementation/tests.
   - Expected files/areas: `docs/adr/`, `src/components/viewer/Viewer.tsx`, `src/components/viewer/Viewer.test.tsx`, possibly `src/App.test.tsx`/`Toolbar.test.tsx` for source-copy wording.
@@ -25,19 +25,19 @@
   - Push: Push after phase commit if sharing incrementally.
   - PR/CI: Not required until all phases complete unless user asks for early PR.
   - Evidence:
-    - Implementation:
-    - Validation:
-    - Review:
-    - Commit:
+    - Implementation: Added ADR 0006; changed Viewer copy handler to serialize rendered text instead of Markdown source; updated copy tests.
+    - Validation: `npm run test:run` passed.
+    - Review: Confirmed toolbar copy remains `Copy markdown source`; normal view selection copy no longer emits Markdown syntax and preserves block breaks.
+    - Commit: `fd5f41b` Fix view copy behavior
     - Push:
   - Tasks:
-    - [ ] T001 Add autosave ADR
+    - [x] T001 Add autosave ADR
       - Expected files/areas: `docs/adr/`
       - Validation note: Documentation review; no code validation alone.
-    - [ ] T002 Remove or replace view copy-as-Markdown handler
+    - [x] T002 Remove or replace view copy-as-Markdown handler
       - Expected files/areas: `src/components/viewer/Viewer.tsx`
       - Validation note: Component tests must assert plain rendered text, not Markdown source.
-    - [ ] T003 Update copy tests
+    - [x] T003 Update copy tests
       - Expected files/areas: `src/components/viewer/Viewer.test.tsx`, optional app/toolbar tests
       - Validation note: Cover bold text and multi-block newline preservation.
 
@@ -103,13 +103,13 @@
 
 ## P001 Copy behavior and autosave ADR
 
-- [ ] T001 Add autosave ADR
+- [x] T001 Add autosave ADR
   - Expected files/areas: `docs/adr/`
   - Validation note: Documentation review; no code validation alone.
-- [ ] T002 Remove or replace view copy-as-Markdown handler
+- [x] T002 Remove or replace view copy-as-Markdown handler
   - Expected files/areas: `src/components/viewer/Viewer.tsx`
   - Validation note: Component tests must assert plain rendered text, not Markdown source.
-- [ ] T003 Update copy tests
+- [x] T003 Update copy tests
   - Expected files/areas: `src/components/viewer/Viewer.test.tsx`, optional app/toolbar tests
   - Validation note: Cover bold text and multi-block newline preservation.
 
@@ -154,14 +154,17 @@
 # Validation Evidence
 
 - Planning artifact validation passed with `node .agents/skills/markdown-viewer-feature-planning/scripts/validate-artifacts.mjs .agent-work/features/2026-06-14-editor-save-watch`.
+- P001 validation passed with `npm run test:run` (`25 passed`, `188 passed`).
 
 # Review Evidence
 
 - Planning self-review found the package covers scope, freshness, branch setup, repo constraints, phase-first tasks, validation, commit/push/PR/CI expectations, and stop/escalation rules.
+- P001 self-review: ADR supersedes ADR 0003's in-memory edit policy; view copy emits rendered text and line breaks; toolbar source-copy behavior is unchanged and explicit.
 
 # Commit Log
 
 - `58436dd` Plan editor save watch fixes
+- `fd5f41b` Fix view copy behavior
 
 # Final Checklist
 
