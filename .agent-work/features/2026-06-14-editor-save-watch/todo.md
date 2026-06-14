@@ -83,7 +83,7 @@
     - Implementation: Added coalesced file-change refresh, stale read tokens, own-save reconciliation, dirty conflict preservation, and race-focused tests.
     - Validation: `npm run lint`, `npm run typecheck`, `npm run test:run`, `(cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test --lib)`, `npm run tauri build`, `/Applications/markdown-viewer.app` replacement, and installed app launch check passed.
     - Review: Fresh self-review focused on data-loss risks; clean tabs refresh, dirty drafts are preserved, and own-save watcher events do not overwrite newer drafts.
-    - Commit:
+    - Commit: `e08c806` Harden file change refresh
     - Push:
   - Tasks:
     - [x] T008 Coalesce watcher refreshes and guard stale async reads
@@ -170,6 +170,7 @@
 - `58436dd` Plan editor save watch fixes
 - `b61e2bf` Fix view copy behavior
 - `6fe4d6f` Add edit autosave lifecycle
+- `e08c806` Harden file change refresh
 
 # Final Checklist
 
@@ -178,6 +179,6 @@
 - [x] Completion criteria in `plan.md` are satisfied.
 - [x] Required validation evidence is recorded.
 - [x] Review evidence is recorded.
-- [ ] Commit evidence is recorded when commits were required.
+- [x] Commit evidence is recorded when commits were required.
 - [ ] Push evidence is recorded when push was required.
 - [ ] PR and CI evidence is recorded when applicable.
