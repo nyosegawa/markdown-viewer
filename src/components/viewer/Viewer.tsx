@@ -60,25 +60,98 @@ async function openExternal(url: string): Promise<void> {
   }
 }
 
-/**
- * Find the smallest source range [srcstart, srcend) that covers every rendered
- * element the selection currently touches. Block granularity: a half-paragraph
- * selection still returns the whole paragraph source — good enough and avoids
- * trying to reconstruct markdown markup from a DOM text offset.
- */
-function rangeToSourceSlice(body: HTMLElement, range: Range, source: string): string | null {
-  const elements = body.querySelectorAll<HTMLElement>("[data-srcstart]");
-  let min = Number.POSITIVE_INFINITY;
-  let max = Number.NEGATIVE_INFINITY;
-  for (const el of elements) {
-    if (!range.intersectsNode(el)) continue;
-    const s = Number(el.dataset.srcstart);
-    const e = Number(el.dataset.srcend);
-    if (Number.isFinite(s) && s < min) min = s;
-    if (Number.isFinite(e) && e > max) max = e;
+const BLOCK_TAGS = new Set([
+  "ADDRESS",
+  "ARTICLE",
+  "ASIDE",
+  "BLOCKQUOTE",
+  "DD",
+  "DIV",
+  "DL",
+  "DT",
+  "FIGCAPTION",
+  "FIGURE",
+  "FOOTER",
+  "FORM",
+  "H1",
+  "H2",
+  "H3",
+  "H4",
+  "H5",
+  "H6",
+  "HEADER",
+  "HR",
+  "LI",
+  "MAIN",
+  "NAV",
+  "OL",
+  "P",
+  "PRE",
+  "SECTION",
+  "TABLE",
+  "TBODY",
+  "TD",
+  "TFOOT",
+  "TH",
+  "THEAD",
+  "TR",
+  "UL",
+]);
+
+function appendLineBreak(parts: string[], maxBreaks: 1 | 2) {
+  while (parts.length > 0 && /[ \t]/.test(parts[parts.length - 1] ?? "")) {
+    parts.pop();
   }
-  if (!Number.isFinite(min) || !Number.isFinite(max) || min >= max) return null;
-  return source.slice(min, Math.min(max, source.length));
+  const joined = parts.join("");
+  const existing = joined.match(/\n+$/)?.[0].length ?? 0;
+  for (let i = existing; i < maxBreaks; i += 1) parts.push("\n");
+}
+
+function nodeToPlainText(node: Node, parts: string[]) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    parts.push(node.textContent ?? "");
+    return;
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return;
+  const el = node as HTMLElement;
+  if (el.tagName === "BR") {
+    appendLineBreak(parts, 1);
+    return;
+  }
+  const isBlock = BLOCK_TAGS.has(el.tagName);
+  const breakCount = el.tagName === "LI" || el.tagName === "TR" ? 1 : 2;
+  if (isBlock && parts.join("").trim().length > 0 && !parts.join("").endsWith("\n")) {
+    appendLineBreak(parts, 1);
+  }
+  for (const child of Array.from(el.childNodes)) {
+    nodeToPlainText(child, parts);
+  }
+  if (isBlock) appendLineBreak(parts, breakCount as 1 | 2);
+}
+
+function normalizeCopiedText(text: string): string {
+  return text
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function rangeToRenderedText(body: HTMLElement, range: Range): string {
+  const selectedBlocks = Array.from(body.querySelectorAll<HTMLElement>("[data-srcstart]"))
+    .filter((el) => range.intersectsNode(el))
+    .filter((el, _index, all) => !all.some((other) => other !== el && other.contains(el)));
+  if (selectedBlocks.length > 1) {
+    return normalizeCopiedText(
+      selectedBlocks.map((el) => normalizeCopiedText(el.textContent ?? "")).join("\n\n"),
+    );
+  }
+
+  const fragment = range.cloneContents();
+  const parts: string[] = [];
+  for (const child of Array.from(fragment.childNodes)) {
+    nodeToPlainText(child, parts);
+  }
+  return normalizeCopiedText(parts.join(""));
 }
 
 /**
@@ -149,12 +222,6 @@ export function Viewer({ source, tabId, basePath, onOpenLocalLink }: ViewerProps
   // Per-tab scroll positions. Kept in a ref so writes don't trigger rerenders.
   const scrollByTabRef = useRef<Map<string, number>>(new Map());
   const lastTabRef = useRef<string | undefined>(tabId);
-  // Latest source, so the copy handler (stable across renders) always slices
-  // from the current file.
-  const sourceRef = useRef(source);
-  useEffect(() => {
-    sourceRef.current = source;
-  }, [source]);
   const tabIdRef = useRef(tabId);
   useEffect(() => {
     tabIdRef.current = tabId;
@@ -285,7 +352,8 @@ export function Viewer({ source, tabId, basePath, onOpenLocalLink }: ViewerProps
     return () => observer.disconnect();
   }, [tabId]);
 
-  // Copy-as-markdown: rewrite clipboard text/plain with the underlying source.
+  // Normal view-mode copy should copy the rendered text, not the markdown
+  // source. The handler only intervenes to preserve block line breaks.
   useEffect(() => {
     const root = scrollRef.current;
     if (!root) return;
@@ -296,10 +364,10 @@ export function Viewer({ source, tabId, basePath, onOpenLocalLink }: ViewerProps
       const body = root?.querySelector<HTMLElement>('[data-testid="markdown-body"]');
       if (!body) return;
       if (!body.contains(range.commonAncestorContainer)) return;
-      const slice = rangeToSourceSlice(body, range, sourceRef.current);
-      if (slice === null || slice.length === 0) return;
+      const text = rangeToRenderedText(body, range);
+      if (text.length === 0) return;
       e.preventDefault();
-      e.clipboardData?.setData("text/plain", slice);
+      e.clipboardData?.setData("text/plain", text);
     }
     root.addEventListener("copy", onCopy);
     return () => root.removeEventListener("copy", onCopy);

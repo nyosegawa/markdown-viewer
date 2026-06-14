@@ -24,6 +24,11 @@ describe("Toolbar", () => {
     expect(screen.getByTestId("title").textContent).toBe("hello.md");
   });
 
+  it("shows save status next to the active file title", () => {
+    render(<Toolbar {...baseProps()} saveStatus="error" lastSaveError="disk full" />);
+    expect(screen.getByText("Save failed")).toHaveAttribute("title", "disk full");
+  });
+
   it("calls onOpen when Open is clicked", async () => {
     const props = baseProps();
     render(<Toolbar {...props} />);

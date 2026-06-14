@@ -3,10 +3,13 @@ import type { Theme } from "@/hooks/useTheme";
 import { basename, dirname, normalizeRenameStem, splitFilename } from "@/lib/path-label";
 
 export type ViewMode = "view" | "edit";
+export type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error" | "conflict";
 
 export interface ToolbarProps {
   path: string | null;
   mode: ViewMode;
+  saveStatus?: SaveStatus;
+  lastSaveError?: string | null;
   onToggleMode: () => void;
   onOpen: () => void;
   theme: Theme;
@@ -138,9 +141,28 @@ function MoonIcon() {
   );
 }
 
+function saveStatusLabel(status?: SaveStatus): string | null {
+  switch (status) {
+    case "dirty":
+      return "Unsaved";
+    case "saving":
+      return "Saving...";
+    case "saved":
+      return "Saved";
+    case "error":
+      return "Save failed";
+    case "conflict":
+      return "File changed";
+    default:
+      return null;
+  }
+}
+
 export function Toolbar({
   path,
   mode,
+  saveStatus,
+  lastSaveError,
   onToggleMode,
   onOpen,
   theme,
@@ -158,6 +180,7 @@ export function Toolbar({
   );
   const menuRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const statusLabel = path ? saveStatusLabel(saveStatus) : null;
 
   useEffect(() => {
     if (!recentOpen) return;
@@ -327,6 +350,15 @@ export function Toolbar({
               {path ? basename(path) : "No file"}
             </span>
           )}
+          {statusLabel ? (
+            <span
+              className={`toolbar-save-status is-${saveStatus}`}
+              title={lastSaveError ?? statusLabel}
+              aria-live="polite"
+            >
+              {statusLabel}
+            </span>
+          ) : null}
         </div>
       )}
 

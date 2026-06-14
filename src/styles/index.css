@@ -149,8 +149,55 @@ body {
   cursor: text;
 }
 
+.toolbar-save-status {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.45rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-ink-muted);
+  vertical-align: middle;
+}
+
+.toolbar-save-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin-right: 0.25rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.toolbar-save-status.is-saving,
+.toolbar-save-status.is-dirty {
+  color: #9a6700;
+}
+
+.toolbar-save-status.is-error,
+.toolbar-save-status.is-conflict {
+  color: #cf222e;
+}
+
+.toolbar-save-status.is-saved {
+  color: #1a7f37;
+}
+
 [data-theme="dark"] .toolbar-title {
   color: var(--color-ink-muted-dark);
+}
+
+[data-theme="dark"] .toolbar-save-status.is-saving,
+[data-theme="dark"] .toolbar-save-status.is-dirty {
+  color: #d29922;
+}
+
+[data-theme="dark"] .toolbar-save-status.is-error,
+[data-theme="dark"] .toolbar-save-status.is-conflict {
+  color: #ff7b72;
+}
+
+[data-theme="dark"] .toolbar-save-status.is-saved {
+  color: #7ee787;
 }
 
 .toolbar-title.is-renaming {

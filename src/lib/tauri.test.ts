@@ -7,6 +7,7 @@ import {
   invokeRevealInFileManager,
   invokeUnwatchFile,
   invokeWatchFile,
+  invokeWriteMarkdown,
   isTauri,
   listenDragDrop,
   listenFileChanged,
@@ -34,6 +35,10 @@ describe("lib/tauri stubs in non-Tauri env", () => {
 
   it("invokeRenameMarkdown throws with a helpful message", async () => {
     await expect(invokeRenameMarkdown("/whatever.md", "renamed")).rejects.toThrow(/Tauri runtime/);
+  });
+
+  it("invokeWriteMarkdown throws with a helpful message", async () => {
+    await expect(invokeWriteMarkdown("/whatever.md", "source")).rejects.toThrow(/Tauri runtime/);
   });
 
   it("invokeWatchFile / invokeUnwatchFile resolve to undefined silently", async () => {

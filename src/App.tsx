@@ -284,6 +284,8 @@ function App() {
       <Toolbar
         path={activeTab?.path ?? null}
         mode={activeTab?.mode ?? "view"}
+        saveStatus={activeTab?.saveStatus ?? "idle"}
+        lastSaveError={activeTab?.lastSaveError ?? null}
         onToggleMode={toggleActiveMode}
         onOpen={handleOpenDialog}
         theme={theme}

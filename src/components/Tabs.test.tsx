@@ -9,9 +9,15 @@ function makeTab(path: string, id = path): Tab {
     id,
     path,
     source: "",
+    savedSource: "",
     status: "ready",
     error: null,
     mode: "view",
+    dirty: false,
+    saveStatus: "idle",
+    lastSaveError: null,
+    conflictSource: null,
+    lastWrittenSource: null,
   };
 }
 
