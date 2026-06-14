@@ -1,7 +1,7 @@
 # Status Summary
 
-- Overall: P001, P002, and P003 complete; final commit/push/PR/CI follow-through pending.
-- Active phase: Final follow-through.
+- Overall: P001, P002, and P003 complete; PR/CI follow-through pending.
+- Active phase: PR/CI follow-through.
 - Last validation: full validation, `npm run tauri build`, `/Applications/markdown-viewer.app` replacement, and installed-app launch verification passed after P003.
 - Last review: P003 self-review completed; stale reads, self-save watcher events, and dirty external conflicts are covered by tests.
 
@@ -29,7 +29,7 @@
     - Validation: `npm run test:run` passed.
     - Review: Confirmed toolbar copy remains `Copy markdown source`; normal view selection copy no longer emits Markdown syntax and preserves block breaks.
     - Commit: `b61e2bf` Fix view copy behavior
-    - Push:
+    - Push: pushed through `c655cb9` to `origin/codex/editor-save-watch-plan`
   - Tasks:
     - [x] T001 Add autosave ADR
       - Expected files/areas: `docs/adr/`
@@ -55,7 +55,7 @@
     - Validation: `npm run lint`, `npm run typecheck`, `npm run test:run`, and `(cd src-tauri && cargo test --lib)` passed.
     - Review: Confirmed Rust only performs thin file write; debounce/save/error/conflict policy lives in frontend; failed saves keep local source.
     - Commit: `6fe4d6f` Add edit autosave lifecycle
-    - Push:
+    - Push: pushed through `c655cb9` to `origin/codex/editor-save-watch-plan`
   - Tasks:
     - [x] T004 Add `write_markdown` command and wrapper
       - Expected files/areas: `src-tauri/src/commands.rs`, `src-tauri/src/lib.rs`, `src/lib/tauri.ts`, tests
@@ -84,7 +84,7 @@
     - Validation: `npm run lint`, `npm run typecheck`, `npm run test:run`, `(cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test --lib)`, `npm run tauri build`, `/Applications/markdown-viewer.app` replacement, and installed app launch check passed.
     - Review: Fresh self-review focused on data-loss risks; clean tabs refresh, dirty drafts are preserved, and own-save watcher events do not overwrite newer drafts.
     - Commit: `e08c806` Harden file change refresh
-    - Push:
+    - Push: pushed through `c655cb9` to `origin/codex/editor-save-watch-plan`
   - Tasks:
     - [x] T008 Coalesce watcher refreshes and guard stale async reads
       - Expected files/areas: `src/hooks/useTabs.ts`
@@ -180,5 +180,5 @@
 - [x] Required validation evidence is recorded.
 - [x] Review evidence is recorded.
 - [x] Commit evidence is recorded when commits were required.
-- [ ] Push evidence is recorded when push was required.
+- [x] Push evidence is recorded when push was required.
 - [ ] PR and CI evidence is recorded when applicable.
