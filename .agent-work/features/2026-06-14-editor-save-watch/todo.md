@@ -1,9 +1,9 @@
 # Status Summary
 
-- Overall: P001 complete; P002 next.
-- Active phase: P002.
-- Last validation: `npm run test:run` passed after P001.
-- Last review: P001 self-review completed; view copy now writes rendered text while toolbar source copy remains explicit.
+- Overall: P001 and P002 complete; P003 next.
+- Active phase: P003.
+- Last validation: `npm run lint`, `npm run typecheck`, `npm run test:run`, and `(cd src-tauri && cargo test --lib)` passed after P002.
+- Last review: P002 self-review completed; autosave state is centralized in `useTabs`, IPC remains thin, and save failures preserve local drafts.
 
 # Branch And Planning Commit
 
@@ -28,7 +28,7 @@
     - Implementation: Added ADR 0006; changed Viewer copy handler to serialize rendered text instead of Markdown source; updated copy tests.
     - Validation: `npm run test:run` passed.
     - Review: Confirmed toolbar copy remains `Copy markdown source`; normal view selection copy no longer emits Markdown syntax and preserves block breaks.
-    - Commit: `fd5f41b` Fix view copy behavior
+    - Commit: `b61e2bf` Fix view copy behavior
     - Push:
   - Tasks:
     - [x] T001 Add autosave ADR
@@ -41,7 +41,7 @@
       - Expected files/areas: `src/components/viewer/Viewer.test.tsx`, optional app/toolbar tests
       - Validation note: Cover bold text and multi-block newline preservation.
 
-- [ ] P002 Thin disk write IPC and autosave state model
+- [x] P002 Thin disk write IPC and autosave state model
   - Goal: Add safe autosave with explicit dirty/save/error metadata centralized in tab lifecycle.
   - Scope: Rust write command, TS wrapper, `useTabs` autosave scheduling/reconciliation, minimal UI status if needed.
   - Expected files/areas: `src-tauri/src/commands.rs`, `src-tauri/src/lib.rs`, `src/lib/tauri.ts`, `src/hooks/useTabs.ts`, `src/hooks/useTabs.test.tsx`, `src/App.tsx`, `src/components/Toolbar.tsx`.
@@ -51,22 +51,22 @@
   - Push: Push after phase commit if sharing incrementally.
   - PR/CI: Not required until all phases complete unless user asks for early PR.
   - Evidence:
-    - Implementation:
-    - Validation:
-    - Review:
+    - Implementation: Added `write_markdown` Rust command and TS wrapper; extended tab save metadata; implemented debounced autosave; added save/error/conflict status display.
+    - Validation: `npm run lint`, `npm run typecheck`, `npm run test:run`, and `(cd src-tauri && cargo test --lib)` passed.
+    - Review: Confirmed Rust only performs thin file write; debounce/save/error/conflict policy lives in frontend; failed saves keep local source.
     - Commit:
     - Push:
   - Tasks:
-    - [ ] T004 Add `write_markdown` command and wrapper
+    - [x] T004 Add `write_markdown` command and wrapper
       - Expected files/areas: `src-tauri/src/commands.rs`, `src-tauri/src/lib.rs`, `src/lib/tauri.ts`, tests
       - Validation note: Rust unit tests plus tauri wrapper tests.
-    - [ ] T005 Extend tab state with save metadata
+    - [x] T005 Extend tab state with save metadata
       - Expected files/areas: `src/hooks/useTabs.ts`
       - Validation note: Unit tests for initial clean state and edit dirty state.
-    - [ ] T006 Implement debounced autosave
+    - [x] T006 Implement debounced autosave
       - Expected files/areas: `src/hooks/useTabs.ts`
       - Validation note: Fake timer tests for debounce, success, failure, and cleanup on close/rename.
-    - [ ] T007 Surface save/error/conflict status minimally
+    - [x] T007 Surface save/error/conflict status minimally
       - Expected files/areas: `src/App.tsx`, `src/components/Toolbar.tsx`, CSS if needed
       - Validation note: Component tests or accessible status assertion.
 
@@ -115,16 +115,16 @@
 
 ## P002 Thin disk write IPC and autosave state model
 
-- [ ] T004 Add `write_markdown` command and wrapper
+- [x] T004 Add `write_markdown` command and wrapper
   - Expected files/areas: `src-tauri/src/commands.rs`, `src-tauri/src/lib.rs`, `src/lib/tauri.ts`, tests
   - Validation note: Rust unit tests plus tauri wrapper tests.
-- [ ] T005 Extend tab state with save metadata
+- [x] T005 Extend tab state with save metadata
   - Expected files/areas: `src/hooks/useTabs.ts`
   - Validation note: Unit tests for initial clean state and edit dirty state.
-- [ ] T006 Implement debounced autosave
+- [x] T006 Implement debounced autosave
   - Expected files/areas: `src/hooks/useTabs.ts`
   - Validation note: Fake timer tests for debounce, success, failure, and cleanup on close/rename.
-- [ ] T007 Surface save/error/conflict status minimally
+- [x] T007 Surface save/error/conflict status minimally
   - Expected files/areas: `src/App.tsx`, `src/components/Toolbar.tsx`, CSS if needed
   - Validation note: Component tests or accessible status assertion.
 
@@ -155,16 +155,18 @@
 
 - Planning artifact validation passed with `node .agents/skills/markdown-viewer-feature-planning/scripts/validate-artifacts.mjs .agent-work/features/2026-06-14-editor-save-watch`.
 - P001 validation passed with `npm run test:run` (`25 passed`, `188 passed`).
+- P002 validation passed with `npm run lint`, `npm run typecheck`, `npm run test:run` (`25 passed`, `193 passed`), and `(cd src-tauri && cargo test --lib)` (`18 passed`).
 
 # Review Evidence
 
 - Planning self-review found the package covers scope, freshness, branch setup, repo constraints, phase-first tasks, validation, commit/push/PR/CI expectations, and stop/escalation rules.
 - P001 self-review: ADR supersedes ADR 0003's in-memory edit policy; view copy emits rendered text and line breaks; toolbar source-copy behavior is unchanged and explicit.
+- P002 self-review: write IPC is thin; autosave runs from `useTabs`; save failure and external conflict keep local draft instead of overwriting.
 
 # Commit Log
 
 - `58436dd` Plan editor save watch fixes
-- `fd5f41b` Fix view copy behavior
+- `b61e2bf` Fix view copy behavior
 
 # Final Checklist
 

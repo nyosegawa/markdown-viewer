@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   invokeRenameMarkdown: vi.fn(),
   invokeWatchFile: vi.fn(),
   invokeUnwatchFile: vi.fn(),
+  invokeWriteMarkdown: vi.fn(),
   listenFileChanged: vi.fn(),
 }));
 
@@ -14,6 +15,7 @@ vi.mock("@/lib/tauri", () => ({
   invokeRenameMarkdown: mocks.invokeRenameMarkdown,
   invokeWatchFile: mocks.invokeWatchFile,
   invokeUnwatchFile: mocks.invokeUnwatchFile,
+  invokeWriteMarkdown: mocks.invokeWriteMarkdown,
   listenFileChanged: mocks.listenFileChanged,
 }));
 
@@ -25,10 +27,12 @@ describe("useTabs", () => {
     mocks.invokeRenameMarkdown.mockReset();
     mocks.invokeWatchFile.mockReset().mockResolvedValue(undefined);
     mocks.invokeUnwatchFile.mockReset().mockResolvedValue(undefined);
+    mocks.invokeWriteMarkdown.mockReset().mockResolvedValue(undefined);
     mocks.listenFileChanged.mockReset().mockResolvedValue(() => {});
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.clearAllMocks();
   });
 
@@ -51,8 +55,11 @@ describe("useTabs", () => {
     expect(result.current.tabs[0]).toMatchObject({
       path: "/a.md",
       source: "# one\n",
+      savedSource: "# one\n",
       status: "ready",
       mode: "view",
+      dirty: false,
+      saveStatus: "idle",
     });
     expect(result.current.activeId).toBe(result.current.tabs[0]?.id);
     expect(mocks.invokeWatchFile).toHaveBeenCalledWith("/a.md");
@@ -278,6 +285,55 @@ describe("useTabs", () => {
     });
     act(() => result.current.setActiveSource("edited"));
     expect(result.current.tabs[0]?.source).toBe("edited");
+    expect(result.current.tabs[0]?.dirty).toBe(true);
+    expect(result.current.tabs[0]?.saveStatus).toBe("dirty");
+  });
+
+  it("autosaves edited source after a debounce", async () => {
+    vi.useFakeTimers();
+    mocks.invokeReadMarkdown.mockResolvedValue("orig");
+    const { result } = renderHook(() => useTabs());
+
+    await act(async () => {
+      await result.current.openPath("/a.md");
+    });
+    act(() => result.current.setActiveSource("edited"));
+    expect(mocks.invokeWriteMarkdown).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+      await Promise.resolve();
+    });
+
+    expect(mocks.invokeWriteMarkdown).toHaveBeenCalledWith("/a.md", "edited");
+    expect(result.current.tabs[0]?.dirty).toBe(false);
+    expect(result.current.tabs[0]?.savedSource).toBe("edited");
+    expect(result.current.tabs[0]?.saveStatus).toBe("saved");
+    vi.useRealTimers();
+  });
+
+  it("keeps the local draft and reports an error when autosave fails", async () => {
+    vi.useFakeTimers();
+    mocks.invokeReadMarkdown.mockResolvedValue("orig");
+    mocks.invokeWriteMarkdown.mockRejectedValueOnce(new Error("disk full"));
+    const { result } = renderHook(() => useTabs());
+
+    await act(async () => {
+      await result.current.openPath("/a.md");
+    });
+    act(() => result.current.setActiveSource("edited"));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+      await Promise.resolve();
+    });
+
+    expect(result.current.tabs[0]?.saveStatus).toBe("error");
+    expect(result.current.tabs[0]?.source).toBe("edited");
+    expect(result.current.tabs[0]?.savedSource).toBe("orig");
+    expect(result.current.tabs[0]?.dirty).toBe(true);
+    expect(result.current.tabs[0]?.lastSaveError).toContain("disk full");
+    vi.useRealTimers();
   });
 
   it("renameTab updates the tab path and rewatches the file", async () => {
@@ -332,7 +388,7 @@ describe("useTabs", () => {
     mocks.invokeReadMarkdown.mockResolvedValueOnce("a2");
     await act(async () => {
       registered?.("/a.md");
-      await Promise.resolve();
+      await new Promise((resolve) => setTimeout(resolve, 80));
     });
     await waitFor(() => expect(result.current.tabs[0]?.source).toBe("a2"));
     expect(result.current.tabs[1]?.source).toBe("b1");
@@ -356,9 +412,40 @@ describe("useTabs", () => {
     mocks.invokeReadMarkdown.mockResolvedValueOnce("a2");
     await act(async () => {
       registered?.("/private/tmp/a.md", "/linked/a.md");
-      await Promise.resolve();
+      await new Promise((resolve) => setTimeout(resolve, 80));
     });
 
     await waitFor(() => expect(result.current.tabs[0]?.source).toBe("a2"));
+  });
+
+  it("preserves a dirty draft when an external change arrives", async () => {
+    mocks.invokeReadMarkdown.mockResolvedValueOnce("orig");
+    let registered: ((path: string, canonicalPath?: string) => void) | null = null;
+    mocks.listenFileChanged.mockImplementation(async (handler) => {
+      registered = handler;
+      return () => {};
+    });
+    const { result } = renderHook(() => useTabs());
+    await waitFor(() => expect(registered).not.toBeNull());
+    vi.useFakeTimers();
+
+    await act(async () => {
+      await result.current.openPath("/a.md");
+    });
+    act(() => result.current.setActiveSource("local draft"));
+
+    mocks.invokeReadMarkdown.mockResolvedValueOnce("external change");
+    await act(async () => {
+      registered?.("/a.md");
+      await vi.advanceTimersByTimeAsync(60);
+      await Promise.resolve();
+    });
+
+    expect(result.current.tabs[0]?.source).toBe("local draft");
+    expect(result.current.tabs[0]?.savedSource).toBe("external change");
+    expect(result.current.tabs[0]?.saveStatus).toBe("conflict");
+    expect(result.current.tabs[0]?.conflictSource).toBe("external change");
+    expect(mocks.invokeWriteMarkdown).not.toHaveBeenCalled();
+    vi.useRealTimers();
   });
 });

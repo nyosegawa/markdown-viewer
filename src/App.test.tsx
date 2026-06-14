@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const tauriMocks = vi.hoisted(() => ({
   isTauri: vi.fn(() => false),
   invokeReadMarkdown: vi.fn(),
+  invokeWriteMarkdown: vi.fn(async () => undefined),
   invokeWatchFile: vi.fn(async () => undefined),
   invokeUnwatchFile: vi.fn(async () => undefined),
   listenFileChanged: vi.fn(async () => () => {}),

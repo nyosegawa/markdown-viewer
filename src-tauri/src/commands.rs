@@ -16,6 +16,15 @@ pub async fn read_markdown(path: String) -> Result<String, String> {
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
+pub async fn write_markdown(path: String, source: String) -> Result<(), String> {
+    let path = PathBuf::from(&path);
+    tokio::fs::write(&path, source)
+        .await
+        .map_err(|e| format!("failed to write {}: {e}", path.display()))
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub async fn rename_markdown(path: String, filename_stem: String) -> Result<String, String> {
     let from = PathBuf::from(&path);
     let stem = filename_stem.trim();
@@ -198,6 +207,23 @@ mod tests {
             .await
             .expect("read ok");
         assert_eq!(out, text);
+    }
+
+    #[tokio::test]
+    async fn write_markdown_replaces_contents_and_preserves_utf8() {
+        let dir = tempdir().expect("tempdir");
+        let path = dir.path().join("sample.md");
+        tokio::fs::write(&path, "# old\n").await.expect("write");
+
+        write_markdown(
+            path.to_string_lossy().into_owned(),
+            "# 新しい本文\n\nupdated\n".to_string(),
+        )
+        .await
+        .expect("write ok");
+
+        let out = tokio::fs::read_to_string(&path).await.expect("read");
+        assert_eq!(out, "# 新しい本文\n\nupdated\n");
     }
 
     #[tokio::test]
