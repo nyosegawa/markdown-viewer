@@ -18,9 +18,9 @@ Implement the planned PDF output toolbar button and Command+P shortcut from `tod
 # branch and planning commit
 
 - Branch: `codex/pdf-export-button-plan`
-- Planning commit: Pending
+- Planning commit: `d5148d9` (`Plan PDF export button`)
 - Remote: `origin ssh://git@github.com/nyosegawa/markdown-viewer.git`
-- Push result: Pending
+- Push result: Pushed `codex/pdf-export-button-plan` to `origin` and set upstream
 - Continue implementation on this same branch. Do not create a separate implementation branch unless the user explicitly redirects.
 
 # freshness policy and freshness result

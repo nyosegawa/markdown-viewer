@@ -8,9 +8,9 @@
 # Branch And Planning Commit
 
 - Branch: `codex/pdf-export-button-plan`
-- Planning commit: Pending.
+- Planning commit: `d5148d9` (`Plan PDF export button`).
 - Remote: `origin ssh://git@github.com/nyosegawa/markdown-viewer.git`
-- Push result: Pending.
+- Push result: Pushed `codex/pdf-export-button-plan` to `origin` and set upstream.
 - Blockers: None.
 
 # Phase Checklist
@@ -84,7 +84,8 @@
 
 # Commit Log
 
-- Planning commit: Pending.
+- Planning commit: `d5148d9` (`Plan PDF export button`).
+- Planning evidence update commit: Pending.
 - Implementation commits: Pending.
 
 # Final Checklist
