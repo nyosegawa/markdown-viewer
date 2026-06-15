@@ -25,6 +25,15 @@ pub async fn write_markdown(path: String, source: String) -> Result<(), String> 
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
+pub async fn write_binary_file(path: String, bytes: Vec<u8>) -> Result<(), String> {
+    let path = PathBuf::from(&path);
+    tokio::fs::write(&path, bytes)
+        .await
+        .map_err(|e| format!("failed to write {}: {e}", path.display()))
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub async fn rename_markdown(path: String, filename_stem: String) -> Result<String, String> {
     let from = PathBuf::from(&path);
     let stem = filename_stem.trim();
@@ -224,6 +233,20 @@ mod tests {
 
         let out = tokio::fs::read_to_string(&path).await.expect("read");
         assert_eq!(out, "# 新しい本文\n\nupdated\n");
+    }
+
+    #[tokio::test]
+    async fn write_binary_file_writes_exact_bytes() {
+        let dir = tempdir().expect("tempdir");
+        let path = dir.path().join("sample.pdf");
+        let bytes = vec![0x25, 0x50, 0x44, 0x46, 0x00, 0xff];
+
+        write_binary_file(path.to_string_lossy().into_owned(), bytes.clone())
+            .await
+            .expect("write ok");
+
+        let out = tokio::fs::read(&path).await.expect("read");
+        assert_eq!(out, bytes);
     }
 
     #[tokio::test]

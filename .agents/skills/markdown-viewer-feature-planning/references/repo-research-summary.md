@@ -1,6 +1,7 @@
 # Repo Research Summary
 
 Last full research: 2026-06-07.
+Last targeted refresh: 2026-06-15.
 
 ## Scope
 
@@ -48,9 +49,10 @@ The Claude hooks enforce protected-file policy, auto-run Biome on TS/JS/CSS edit
 - Rust owns file IO, path watching with `notify`, and macOS `RunEvent::Opened` forwarding as `open-file`.
 - Tauri capabilities are in `src-tauri/capabilities/default.json`.
 - Vite dev server uses port `1420` with strict port and HMR on `1421` when `TAURI_DEV_HOST` is set.
-- View mode is the default. Edit mode is opt-in, CodeMirror 6 is lazy-loaded, and edits stay in memory unless a future ADR explicitly permits disk saves.
+- View mode is the default. Edit mode is opt-in, CodeMirror 6 is lazy-loaded, and ADR 0006 now permits autosave back to the opened file after a short frontend-owned debounce.
 - Tabs are frontend-owned. Rust watcher supports multiple watched paths but does not know about tabs.
 - Core feature-planning surfaces include `src/App.tsx`, `src/hooks/useTabs.ts`, `src/lib/tauri.ts`, `src-tauri/src/commands.rs`, `src-tauri/src/watcher.rs`, `src-tauri/src/lib.rs`, and `src-tauri/src/pending_open.rs`.
+- Toolbar/global-command plans should inspect `src/components/Toolbar.tsx`, `src/hooks/useKeyboardShortcuts.ts`, `src/lib/platform.ts`, `src/App.tsx`, `src/App.test.tsx`, and `src/hooks/useKeyboardShortcuts.test.tsx`.
 - Rendering plans should inspect `src/lib/markdown*.tsx`, `src/lib/rehype-*`, `src/styles/*.css`, and `src/components/viewer/**`.
 - Edit-mode plans should inspect `src/components/Editor.tsx`, `src/hooks/useFitDisplayMath.ts`, and ADR 0003.
 - Open/link/file lifecycle plans should inspect `src/lib/links.ts`, `src/components/DropZone.tsx`, and ADR 0004.
@@ -80,7 +82,7 @@ Release workflow `Release` runs on `v*` tags or manual dispatch. It builds macOS
 
 - For user-facing changes, unless told otherwise, finish by committing, pushing to GitHub, watching the pushed GitHub Actions run, and reporting the concrete result.
 - For user-facing app changes, unless told otherwise, run `npm run tauri build`, replace `/Applications/markdown-viewer.app`, and verify the installed app can launch.
-- Do not persist edits to disk without an ADR.
+- Edit-mode persistence is governed by ADR 0006: opened files autosave to disk, but new persistence or export behavior still needs an explicit design decision.
 - React hook dependency omissions must use a justified `useRef` pattern, not `// biome-ignore`.
 - E2E is Linux-friendly in CI; macOS/Windows coverage is manual smoke until driver support matures.
 - E2E requires `npm run tauri build -- --debug --no-bundle` before `npm run e2e`; it expects the debug binary and uses `test/sample.md`.
@@ -88,6 +90,12 @@ Release workflow `Release` runs on `v*` tags or manual dispatch. It builds macOS
 ## Web / Current-State Research
 
 No web research was used for this meta task because the requested skill design was based on repo-local workflow, existing docs, local scripts, CI files, and a local skill-authoring best-practices document. The generated skill requires future planners to use web/current-state research when a feature plan depends on external or time-sensitive facts.
+
+## Targeted Refresh Notes
+
+2026-06-15 targeted refresh inspected the watched files changed since the manifest: `src/App.tsx`, `src/hooks/useTabs.ts`, `src/lib/tauri.ts`, `src-tauri/src/commands.rs`, `src-tauri/src/lib.rs`, and `docs/adr/0006-edit-mode-autosave.md`.
+
+Relevant changes: edit mode now autosaves opened files through a thin Rust `write_markdown` command, tabs track `savedSource`, dirty/save/conflict state, and ADR 0006 explicitly preserves the toolbar source-copy button as the explicit Markdown source copy action. This does not change the frontend-heavy boundary for print/PDF UI work.
 
 ## Generated / Vendored / Protected File Notes
 

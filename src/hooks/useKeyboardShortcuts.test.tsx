@@ -15,6 +15,7 @@ function makeHandlers() {
     onJumpToIndex: vi.fn(),
     onJumpToLast: vi.fn(),
     onCopyActivePath: vi.fn(),
+    onPrintPdf: vi.fn(),
     onRevealActiveInFileManager: vi.fn(),
     onShowHelp: vi.fn(),
     onEscape: vi.fn(),
@@ -24,6 +25,10 @@ function makeHandlers() {
 describe("useKeyboardShortcuts", () => {
   beforeEach(() => {
     document.body.innerHTML = "";
+    Object.defineProperty(navigator, "platform", {
+      configurable: true,
+      value: "Win32",
+    });
   });
   afterEach(() => {
     vi.restoreAllMocks();
@@ -76,6 +81,37 @@ describe("useKeyboardShortcuts", () => {
       await userEvent.keyboard("{Meta>}{Shift>}c{/Shift}{/Meta}");
     });
     expect(h.onCopyActivePath).toHaveBeenCalled();
+  });
+
+  it("Cmd+P fires onPrintPdf", async () => {
+    const h = makeHandlers();
+    renderHook(() => useKeyboardShortcuts(h));
+    await act(async () => {
+      await userEvent.keyboard("{Meta>}p{/Meta}");
+    });
+    expect(h.onPrintPdf).toHaveBeenCalled();
+  });
+
+  it("Ctrl+P fires onPrintPdf on non-mac platforms", async () => {
+    const h = makeHandlers();
+    renderHook(() => useKeyboardShortcuts(h));
+    await act(async () => {
+      await userEvent.keyboard("{Control>}p{/Control}");
+    });
+    expect(h.onPrintPdf).toHaveBeenCalled();
+  });
+
+  it("does not capture macOS Ctrl+P", async () => {
+    Object.defineProperty(navigator, "platform", {
+      configurable: true,
+      value: "MacIntel",
+    });
+    const h = makeHandlers();
+    renderHook(() => useKeyboardShortcuts(h));
+    await act(async () => {
+      await userEvent.keyboard("{Control>}p{/Control}");
+    });
+    expect(h.onPrintPdf).not.toHaveBeenCalled();
   });
 
   it("Cmd+Shift+R fires onRevealActiveInFileManager", async () => {
@@ -158,7 +194,7 @@ describe("useKeyboardShortcuts", () => {
     expect(h.onEscape).toHaveBeenCalled();
   });
 
-  it("skips shortcuts when focus is in an input (except help)", async () => {
+  it("skips text-editing shortcuts when focus is in an input", async () => {
     const h = makeHandlers();
     const input = document.createElement("input");
     document.body.appendChild(input);
@@ -170,11 +206,15 @@ describe("useKeyboardShortcuts", () => {
     });
     expect(h.onOpenDialog).not.toHaveBeenCalled();
 
-    // help still works because it's meant to rescue the user anywhere.
     await act(async () => {
       await userEvent.keyboard("{F1}");
     });
     expect(h.onShowHelp).toHaveBeenCalled();
+
+    await act(async () => {
+      await userEvent.keyboard("{Meta>}p{/Meta}");
+    });
+    expect(h.onPrintPdf).toHaveBeenCalled();
   });
 
   it("keeps Ctrl+Tab tab switching active while focus is in an input", async () => {

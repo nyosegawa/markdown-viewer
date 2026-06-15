@@ -28,6 +28,14 @@ export async function invokeWriteMarkdown(path: string, source: string): Promise
   await invoke("write_markdown", { path, source });
 }
 
+export async function invokeWriteBinaryFile(path: string, bytes: Uint8Array): Promise<void> {
+  if (!isTauri()) {
+    throw new Error("Tauri runtime unavailable");
+  }
+  const { invoke } = await import("@tauri-apps/api/core");
+  await invoke("write_binary_file", { path, bytes: Array.from(bytes) });
+}
+
 export async function invokeRenameMarkdown(path: string, filenameStem: string): Promise<string> {
   if (!isTauri()) {
     throw new Error("Tauri runtime unavailable");

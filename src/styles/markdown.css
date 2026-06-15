@@ -309,3 +309,52 @@
 [data-theme="dark"] .markdown-body .front-matter .front-matter-value {
   color: var(--color-ink-dark);
 }
+
+@media print {
+  .markdown-body {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    color: #24292f;
+    background: #fff;
+    font-size: 12pt;
+    line-height: 1.55;
+  }
+
+  [data-theme] .markdown-body a {
+    color: #0969da;
+    text-decoration: underline;
+  }
+
+  [data-theme] .markdown-body pre,
+  [data-theme] .markdown-body .shiki {
+    white-space: pre-wrap;
+    overflow: visible;
+    break-inside: avoid;
+    color: #24292f;
+    background: #f6f8fa;
+    border: 1px solid #d8dee4;
+  }
+
+  [data-theme] .markdown-body table,
+  [data-theme] .markdown-body blockquote,
+  [data-theme] .markdown-body .front-matter,
+  [data-theme] .markdown-body .katex-display {
+    break-inside: avoid;
+  }
+
+  .markdown-body img,
+  .markdown-body svg {
+    max-width: 100%;
+  }
+
+  [data-theme] .markdown-body h1,
+  [data-theme] .markdown-body h2,
+  [data-theme] .markdown-body h3,
+  [data-theme] .markdown-body h4,
+  [data-theme] .markdown-body h5,
+  [data-theme] .markdown-body h6 {
+    break-after: avoid;
+    color: #24292f;
+  }
+}

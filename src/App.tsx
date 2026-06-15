@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DropZone } from "@/components/DropZone";
 import { Editor } from "@/components/Editor";
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
@@ -11,6 +11,7 @@ import { readStoredTabs, useTabPersistence } from "@/hooks/useTabPersistence";
 import { useTabs } from "@/hooks/useTabs";
 import { useTheme } from "@/hooks/useTheme";
 import { isMarkdownPath, parseLocalLinkHref } from "@/lib/links";
+import { exportMarkdownPdf } from "@/lib/pdf-export";
 import { setPendingAnchor } from "@/lib/pending-anchor";
 import { getSrcOffset } from "@/lib/scroll-memory";
 import {
@@ -23,6 +24,11 @@ import {
   openFileDialog,
   resolveAgainstBase,
 } from "@/lib/tauri";
+
+const PrintMarkdownRenderer = lazy(async () => {
+  const mod = await import("@/lib/markdown");
+  return { default: mod.MarkdownRenderer };
+});
 
 function App() {
   const { theme, toggleTheme } = useTheme();
@@ -50,6 +56,7 @@ function App() {
   const { recent, addRecent, clearRecent } = useRecentFiles();
   const [helpOpen, setHelpOpen] = useState(false);
   const [restored, setRestored] = useState(false);
+  const pdfExportRef = useRef<HTMLDivElement>(null);
 
   const handleOpenPath = useCallback(
     async (path: string) => {
@@ -83,6 +90,17 @@ function App() {
       });
     }
   }, []);
+
+  const handlePrintPdf = useCallback(() => {
+    if (!activeTab || activeTab.status === "error") return;
+    const root = pdfExportRef.current;
+    if (!root) return;
+    void (async () => {
+      await exportMarkdownPdf({ root, sourcePath: activeTab.path });
+    })().catch((err) => {
+      console.warn("PDF export failed", err);
+    });
+  }, [activeTab]);
 
   const handleReveal = useCallback((path: string) => {
     void invokeRevealInFileManager(path).catch((err) => {
@@ -261,6 +279,7 @@ function App() {
     onCopyActivePath: () => {
       if (activeTab) handleCopyPath(activeTab.path);
     },
+    onPrintPdf: handlePrintPdf,
     onRevealActiveInFileManager: () => {
       if (activeTab) handleReveal(activeTab.path);
     },
@@ -297,6 +316,8 @@ function App() {
         onCopySource={() => {
           if (activeTab) handleCopySource(activeTab.source);
         }}
+        onPrintPdf={handlePrintPdf}
+        canPrintPdf={activeTab?.status === "ready"}
         onShowHelp={() => setHelpOpen(true)}
       />
 
@@ -362,6 +383,14 @@ function App() {
               onOpenLocalLink={(href) => void handleOpenLocalLink(href, activeTab.path)}
             />
           )
+        ) : null}
+
+        {activeTab && activeTab.status === "ready" ? (
+          <div className="pdf-export-surface" ref={pdfExportRef} aria-hidden="true">
+            <Suspense fallback={null}>
+              <PrintMarkdownRenderer source={activeTab.source} />
+            </Suspense>
+          </div>
         ) : null}
       </main>
 

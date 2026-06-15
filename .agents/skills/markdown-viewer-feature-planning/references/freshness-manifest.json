@@ -2,7 +2,7 @@
   "schema_version": 1,
   "last_full_research_commit": "b2ea5245f2590fdbdc2c56faee7879310bb466b7",
   "last_full_research_at": "2026-06-07T09:20:26Z",
-  "last_checked_at": "2026-06-08T05:38:14.493Z",
+  "last_checked_at": "2026-06-15T07:24:37.850Z",
   "watched_files": {
     "AGENTS.md": {
       "sha256": "21de33b2f939b2f013e060ef7d7557bc5a09f2ea588393eb502e7b21843894d7",
@@ -65,19 +65,19 @@
       "reason": "completion gate behavior"
     },
     "src/App.tsx": {
-      "sha256": "95a6eb98240b24a06ed74cd59983f118e30824ed30db93da4cb91c4afc0a7176",
+      "sha256": "35cb968310521aa7c193912def6467dc4af9335a30aa205f22e36f382afbfa87",
       "reason": "application orchestration and open-file flow"
     },
     "src/hooks/useTabs.ts": {
-      "sha256": "af1edef2c27c4b8c4e817d206588d275a8503613c951c8b0998a69fed3e2f088",
+      "sha256": "7ca55c76e01d205b8174e8576883212ebf88590d2446e2141fea5311a021436c",
       "reason": "tab state, file watching, and view/edit state"
     },
     "src/lib/tauri.ts": {
-      "sha256": "6059241cd691303f46361cffde1c1d43816e8ee0b2a51566c6ad7d0b965b0827",
+      "sha256": "25fb8046e82223b5680b5257c9e9cc79e3431130adfa6c236b20d6710ac8c6f1",
       "reason": "frontend IPC wrapper contract"
     },
     "src-tauri/src/commands.rs": {
-      "sha256": "6da71c7a0de4c9c96c1b2735806510949f951a3e5c473b48873a5579197caef9",
+      "sha256": "abf10baf077b7bd678053a012b79389d20dae1326c9b051175be2426c88446a2",
       "reason": "Rust command surface"
     },
     "src-tauri/src/watcher.rs": {
@@ -85,7 +85,7 @@
       "reason": "file watcher behavior"
     },
     "src-tauri/src/lib.rs": {
-      "sha256": "9fd23d11319156e2d5aaab356826b223cde3b26d04141e7779d71396ac12ef58",
+      "sha256": "521a090b71d235f20c253dd113bf2cb5df95477f3d5b1f51a4a568f19491405c",
       "reason": "Tauri plugin setup and RunEvent handling"
     },
     "src-tauri/src/pending_open.rs": {
@@ -125,7 +125,7 @@
       "reason": "freshness policy"
     },
     ".agents/skills/markdown-viewer-feature-planning/references/repo-research-summary.md": {
-      "sha256": "586b86658ce1be7dcfcc2480a6836eeca45122e1f3c5defd823a185dac999cc9",
+      "sha256": "196f29cbef8d18b489851ec2befe393505dd7011391666778deb4ed06b0088f9",
       "reason": "repo research summary"
     },
     ".agents/skills/markdown-viewer-feature-planning/references/review-rubric.md": {
@@ -161,7 +161,7 @@
     {
       "glob": "docs/adr/*.md",
       "reason": "architecture decision records",
-      "fingerprint": "9bd17fc691889fdf6bb5bea98c8e36bce6b47f483eb15818997b7a7f0c600212"
+      "fingerprint": "4cc2b88aad67dd4dfe8cc2e1a263c80308dae15c67cf830dcedd880905ad9586"
     },
     {
       "glob": ".github/workflows/*.yml",
