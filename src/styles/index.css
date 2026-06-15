@@ -511,6 +511,58 @@ body {
   opacity: 0.8;
 }
 
+@media print {
+  @page {
+    margin: 16mm;
+  }
+
+  html,
+  body,
+  #root {
+    height: auto;
+    overflow: visible;
+    background: #fff;
+  }
+
+  body {
+    color: #24292f;
+  }
+
+  .app-shell,
+  .app-body,
+  .viewer,
+  .viewer-scroll {
+    display: block;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    background: #fff;
+    color: #24292f;
+  }
+
+  .toolbar,
+  .tab-bar,
+  .search-bar,
+  .drop-overlay,
+  .empty-state,
+  .error-state,
+  .shortcut-overlay {
+    display: none;
+  }
+
+  .viewer-scroll {
+    padding: 0;
+  }
+
+  .editor-host {
+    display: none;
+  }
+
+  .pdf-export-surface {
+    display: none;
+  }
+}
+
 /* --- Drop overlay -------------------------------------------------- */
 
 .drop-overlay {
@@ -1261,4 +1313,91 @@ body {
   background: color-mix(in oklab, white 14%, transparent);
   background-clip: content-box;
   border: 2px solid transparent;
+}
+
+/* --- PDF export surface -------------------------------------------- */
+
+.pdf-export-surface {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  width: 794px;
+  max-height: none;
+  overflow: visible;
+  pointer-events: none;
+  background: #fff;
+  color: #24292f;
+}
+
+.pdf-export-surface .markdown-body {
+  width: 794px;
+  max-width: none;
+  min-height: 1123px;
+  box-sizing: border-box;
+  padding: 48px;
+  background: #fff;
+  color: #24292f;
+  color-scheme: light;
+}
+
+.pdf-export-surface .markdown-body,
+.pdf-export-surface .markdown-body p,
+.pdf-export-surface .markdown-body li,
+.pdf-export-surface .markdown-body table tr,
+.pdf-export-surface .markdown-body table th,
+.pdf-export-surface .markdown-body table td {
+  color: #24292f;
+}
+
+.pdf-export-surface .markdown-body h1,
+.pdf-export-surface .markdown-body h2,
+.pdf-export-surface .markdown-body h3,
+.pdf-export-surface .markdown-body h4,
+.pdf-export-surface .markdown-body h5,
+.pdf-export-surface .markdown-body h6,
+.pdf-export-surface .markdown-body strong {
+  color: #1f2328;
+  border-bottom-color: #d8dee4;
+}
+
+.pdf-export-surface .markdown-body a {
+  color: #0969da;
+}
+
+.pdf-export-surface .markdown-body code:not(pre code) {
+  background: #f6f8fa;
+  color: #1f2328;
+  border: 1px solid #d8dee4;
+}
+
+.pdf-export-surface .markdown-body pre {
+  background: #f6f8fa;
+  border: 1px solid #d8dee4;
+  color: #24292f;
+}
+
+.pdf-export-surface .markdown-body pre code,
+.pdf-export-surface .markdown-body pre code span {
+  color: inherit;
+}
+
+.pdf-export-surface .markdown-body blockquote {
+  color: #59636e;
+  border-left-color: #d8dee4;
+}
+
+.pdf-export-surface .markdown-body table,
+.pdf-export-surface .markdown-body table tr,
+.pdf-export-surface .markdown-body table th,
+.pdf-export-surface .markdown-body table td {
+  border-color: #d8dee4;
+}
+
+.pdf-export-surface .markdown-body table tr:nth-child(2n),
+.pdf-export-surface .markdown-body table th {
+  background: #f6f8fa;
+}
+
+.pdf-export-surface .markdown-body hr {
+  background: #d8dee4;
 }

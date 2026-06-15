@@ -73,5 +73,6 @@ export const TAB_SHORTCUTS = {
   closeOthers: { keys: ["mod", "alt"], key: "W" } satisfies Shortcut,
   closeAll: { keys: ["mod", "shift"], key: "W" } satisfies Shortcut,
   copyPath: { keys: ["mod", "shift"], key: "C" } satisfies Shortcut,
+  printPdf: { keys: ["mod"], key: "P" } satisfies Shortcut,
   revealInFileManager: { keys: ["mod", "shift"], key: "R" } satisfies Shortcut,
 } as const;

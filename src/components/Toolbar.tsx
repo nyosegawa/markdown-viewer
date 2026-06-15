@@ -19,6 +19,8 @@ export interface ToolbarProps {
   onClearRecent: () => void;
   onRenameActive?: (filenameStem: string) => Promise<void>;
   onCopySource?: () => void;
+  onPrintPdf?: () => void;
+  canPrintPdf?: boolean;
   onShowHelp?: () => void;
 }
 
@@ -115,6 +117,26 @@ function CopyIcon() {
   );
 }
 
+function PrintIcon() {
+  return (
+    <svg
+      className="toolbar-btn-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M6 9V2h12v7" />
+      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+      <path d="M6 14h12v8H6z" />
+      <path d="M8 18h8" />
+    </svg>
+  );
+}
+
 function SunIcon() {
   return (
     <svg
@@ -172,6 +194,8 @@ export function Toolbar({
   onClearRecent,
   onRenameActive,
   onCopySource,
+  onPrintPdf,
+  canPrintPdf,
   onShowHelp,
 }: ToolbarProps) {
   const [recentOpen, setRecentOpen] = useState(false);
@@ -374,6 +398,20 @@ export function Toolbar({
             data-testid="copy-source-btn"
           >
             <CopyIcon />
+          </button>
+        ) : null}
+
+        {onPrintPdf ? (
+          <button
+            type="button"
+            className="toolbar-btn toolbar-icon-btn"
+            onClick={onPrintPdf}
+            aria-label="Download PDF"
+            disabled={!(canPrintPdf ?? path !== null)}
+            title="Download PDF"
+            data-testid="print-pdf-btn"
+          >
+            <PrintIcon />
           </button>
         ) : null}
 

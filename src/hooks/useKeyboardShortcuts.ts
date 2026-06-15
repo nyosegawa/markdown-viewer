@@ -22,6 +22,8 @@ export interface ShortcutHandlers {
   onJumpToLast: () => void;
   /** ⌘⇧C / Ctrl+Shift+C — copy active tab's absolute path */
   onCopyActivePath: () => void;
+  /** ⌘P / Ctrl+P — export the active tab as a PDF */
+  onPrintPdf: () => void;
   /** ⌘⇧R / Ctrl+Shift+R — reveal active tab in Finder/Explorer */
   onRevealActiveInFileManager: () => void;
   /** ⌘? / Ctrl+? / F1 */
@@ -66,6 +68,13 @@ export function useKeyboardShortcuts(handlers: ShortcutHandlers) {
         e.preventDefault();
         if (e.shiftKey) handlersRef.current.onPrevTab();
         else handlersRef.current.onNextTab();
+        return;
+      }
+
+      const printMod = e.metaKey || (!mac && e.ctrlKey);
+      if (printMod && !e.shiftKey && !e.altKey && (e.key === "p" || e.key === "P")) {
+        e.preventDefault();
+        handlersRef.current.onPrintPdf();
         return;
       }
 

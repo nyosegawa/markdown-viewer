@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -18,6 +18,12 @@ const tauriMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/tauri", () => tauriMocks);
+
+const pdfExportMocks = vi.hoisted(() => ({
+  exportMarkdownPdf: vi.fn(async () => undefined),
+}));
+
+vi.mock("@/lib/pdf-export", () => pdfExportMocks);
 
 // Avoid loading Shiki/Highlight core in unit tests.
 vi.mock("@/lib/markdown", async () => {
@@ -44,6 +50,9 @@ describe("App", () => {
   beforeEach(() => {
     Object.values(tauriMocks).forEach((m) => {
       if (typeof m === "function" && "mockClear" in m) m.mockClear();
+    });
+    Object.values(pdfExportMocks).forEach((m) => {
+      m.mockClear();
     });
     tauriMocks.openFileDialog.mockResolvedValue(null);
     tauriMocks.getCliPath.mockResolvedValue(null);
@@ -102,6 +111,76 @@ describe("App", () => {
     expect(clipboardWriteText).toHaveBeenCalledWith("# From disk\n");
   });
 
+  it("places the PDF output button immediately after markdown source copy", async () => {
+    tauriMocks.openFileDialog.mockResolvedValueOnce("/tmp/readme.md");
+    tauriMocks.invokeReadMarkdown.mockResolvedValueOnce("# From disk\n");
+
+    render(<App />);
+    await userEvent.click(screen.getByTestId("open-btn"));
+    await screen.findByRole("heading", { level: 1, name: "From disk" });
+
+    const copyButton = screen.getByRole("button", { name: "Copy markdown source" });
+    const printButton = screen.getByRole("button", { name: "Download PDF" });
+
+    expect(printButton).toBeEnabled();
+    expect(copyButton.nextElementSibling).toBe(printButton);
+  });
+
+  it("exports the active rendered markdown from the toolbar", async () => {
+    tauriMocks.openFileDialog.mockResolvedValueOnce("/tmp/readme.md");
+    tauriMocks.invokeReadMarkdown.mockResolvedValueOnce("# From disk\n");
+
+    render(<App />);
+    await userEvent.click(screen.getByTestId("open-btn"));
+    await screen.findByRole("heading", { level: 1, name: "From disk" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Download PDF" }));
+    await waitFor(() => expect(pdfExportMocks.exportMarkdownPdf).toHaveBeenCalledTimes(1));
+    expect(pdfExportMocks.exportMarkdownPdf).toHaveBeenCalledWith({
+      root: expect.objectContaining({ className: "pdf-export-surface" }),
+      sourcePath: "/tmp/readme.md",
+    });
+  });
+
+  it("does not export when there is no active document", async () => {
+    render(<App />);
+
+    expect(screen.getByRole("button", { name: "Download PDF" })).toBeDisabled();
+    await act(async () => {
+      await userEvent.keyboard("{Meta>}p{/Meta}");
+    });
+
+    expect(pdfExportMocks.exportMarkdownPdf).not.toHaveBeenCalled();
+  });
+
+  it("Cmd+P exports the active document", async () => {
+    tauriMocks.openFileDialog.mockResolvedValueOnce("/tmp/readme.md");
+    tauriMocks.invokeReadMarkdown.mockResolvedValueOnce("# From disk\n");
+
+    render(<App />);
+    await userEvent.click(screen.getByTestId("open-btn"));
+    await screen.findByRole("heading", { level: 1, name: "From disk" });
+
+    await act(async () => {
+      await userEvent.keyboard("{Meta>}p{/Meta}");
+    });
+
+    await waitFor(() => expect(pdfExportMocks.exportMarkdownPdf).toHaveBeenCalledTimes(1));
+  });
+
+  it("keeps PDF export disabled for an active error tab", async () => {
+    tauriMocks.openFileDialog.mockResolvedValueOnce("/tmp/missing.md");
+    tauriMocks.invokeReadMarkdown.mockRejectedValueOnce(new Error("missing"));
+
+    render(<App />);
+    await userEvent.click(screen.getByTestId("open-btn"));
+    await screen.findByTestId("error-state");
+
+    expect(screen.getByRole("button", { name: "Download PDF" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Download PDF" }));
+    expect(pdfExportMocks.exportMarkdownPdf).not.toHaveBeenCalled();
+  });
+
   it("copies in-memory edit mode source from the toolbar", async () => {
     tauriMocks.openFileDialog.mockResolvedValueOnce("/tmp/readme.md");
     tauriMocks.invokeReadMarkdown.mockResolvedValueOnce("# From disk\n");
@@ -116,6 +195,26 @@ describe("App", () => {
     await userEvent.click(screen.getByRole("button", { name: "Copy markdown source" }));
 
     expect(clipboardWriteText).toHaveBeenLastCalledWith("edited source");
+  });
+
+  it("exports edited source through the hidden rendered PDF surface", async () => {
+    tauriMocks.openFileDialog.mockResolvedValueOnce("/tmp/readme.md");
+    tauriMocks.invokeReadMarkdown.mockResolvedValueOnce("# From disk\n");
+
+    render(<App />);
+    await userEvent.click(screen.getByTestId("open-btn"));
+    await screen.findByRole("heading", { level: 1, name: "From disk" });
+
+    await userEvent.click(screen.getByTestId("mode-btn"));
+    await userEvent.clear(screen.getByTestId("mock-editor"));
+    await userEvent.type(screen.getByTestId("mock-editor"), "# Edited source");
+
+    expect(document.querySelector(".pdf-export-surface")?.textContent).toContain("Edited source");
+
+    await act(async () => {
+      await userEvent.keyboard("{Meta>}p{/Meta}");
+    });
+    await waitFor(() => expect(pdfExportMocks.exportMarkdownPdf).toHaveBeenCalledTimes(1));
   });
 
   it("opens any path stashed by Apple Events before the listener was wired up", async () => {
@@ -139,11 +238,11 @@ describe("App", () => {
 
   it("Escape in edit mode returns to view mode", async () => {
     tauriMocks.openFileDialog.mockResolvedValueOnce("/tmp/x.md");
-    tauriMocks.invokeReadMarkdown.mockResolvedValueOnce("body");
+    tauriMocks.invokeReadMarkdown.mockResolvedValueOnce("# Body\n");
 
     render(<App />);
     await userEvent.click(screen.getByTestId("open-btn"));
-    await screen.findByTestId("markdown-body");
+    await screen.findByRole("heading", { level: 1, name: "Body" });
 
     const modeBtn = screen.getByTestId("mode-btn");
     await userEvent.click(modeBtn);

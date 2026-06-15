@@ -61,6 +61,10 @@ const ROWS: Row[] = [
     shortcuts: [TAB_SHORTCUTS.copyPath],
   },
   {
+    label: "Download PDF",
+    shortcuts: [TAB_SHORTCUTS.printPdf],
+  },
+  {
     label: "Show active tab in file manager",
     shortcuts: [TAB_SHORTCUTS.revealInFileManager],
   },

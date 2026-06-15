@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
@@ -7,6 +8,13 @@ const host = process.env.TAURI_DEV_HOST;
 
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      html2canvas: fileURLToPath(
+        new URL("./src/lib/pdf-export/html2canvas-stub.ts", import.meta.url),
+      ),
+    },
+  },
 
   clearScreen: false,
   server: {
