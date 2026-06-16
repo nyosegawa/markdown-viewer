@@ -156,4 +156,49 @@ describe("drawMathSvg", () => {
     expect(addImage).not.toHaveBeenCalled();
     expect(svg2pdf).toHaveBeenCalledTimes(1);
   });
+
+  it("falls back to SVG drawing when math PNG encoding fails", async () => {
+    const originalCreateElement = document.createElement.bind(document);
+    vi.spyOn(document, "createElement").mockImplementation((tagName: string) => {
+      if (tagName === "canvas") {
+        return {
+          getContext: () => ({ drawImage: vi.fn() }),
+          toDataURL: () => {
+            throw new Error("canvas is not origin clean");
+          },
+          width: 0,
+          height: 0,
+        } as unknown as HTMLElement;
+      }
+      return originalCreateElement(tagName);
+    });
+    vi.stubGlobal(
+      "Image",
+      class {
+        complete = true;
+        onerror: (() => void) | null = null;
+        onload: (() => void) | null = null;
+
+        set src(_value: string) {
+          this.onload?.();
+        }
+      },
+    );
+    const addImage = vi.fn();
+
+    await drawMathSvg(
+      { addImage } as never,
+      {
+        aspectRatio: 1,
+        svg: '<svg viewBox="0 0 10 10"><text>日本語</text></svg>',
+      },
+      1,
+      2,
+      30,
+      12,
+    );
+
+    expect(addImage).not.toHaveBeenCalled();
+    expect(svg2pdf).toHaveBeenCalledTimes(1);
+  });
 });

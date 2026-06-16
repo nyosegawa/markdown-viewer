@@ -87,7 +87,18 @@ export function splitTextToLines(pdf: JsPdf, text: string, width: number): strin
 }
 
 export function splitPreservedTextToLines(pdf: JsPdf, text: string, width: number): string[] {
-  const expanded = text.replace(/\t/g, "    ");
+  let column = 0;
+  const expanded = Array.from(text)
+    .map((char) => {
+      if (char !== "\t") {
+        column += 1;
+        return char;
+      }
+      const spaces = 4 - (column % 4);
+      column += spaces;
+      return " ".repeat(spaces);
+    })
+    .join("");
   if (expanded === "") return [""];
   const lines: string[] = [];
   let line = "";

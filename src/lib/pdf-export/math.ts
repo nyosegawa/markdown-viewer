@@ -105,8 +105,8 @@ async function rasterizeSvg(
 
   try {
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/png");
   } catch {
     return null;
   }
-  return canvas.toDataURL("image/png");
 }
