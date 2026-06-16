@@ -16,6 +16,8 @@ import {
   ensureSpace,
   type Layout,
   setTextColor,
+  splitPreservedTextToLines,
+  splitTextToLines,
   TYPE,
 } from "@/lib/pdf-export/style";
 
@@ -52,7 +54,7 @@ function addTextBlock(
   pdf.setFontSize(options.fontSize);
   setTextColor(pdf, options.color);
   const width = options.width ?? layout.contentWidth - indent;
-  const lines = pdf.splitTextToSize(normalized, width) as string[];
+  const lines = splitTextToLines(pdf, normalized, width);
   for (const line of lines) {
     ensureSpace(pdf, layout, options.lineHeight);
     drawText(pdf, line, layout.x + indent, layout.y);
@@ -71,7 +73,7 @@ function addHeading(pdf: JsPdf, layout: Layout, el: HTMLElement) {
   pdf.setFont(PDF_FONT_HEADING_NAME, "normal");
   pdf.setFontSize(fontSize);
   setTextColor(pdf, COLORS.ink);
-  const lines = pdf.splitTextToSize(childText(el), layout.contentWidth) as string[];
+  const lines = splitTextToLines(pdf, childText(el), layout.contentWidth);
   ensureSpace(pdf, layout, lines.length * lineHeight + after + 2);
   for (const line of lines) {
     drawBoldText(pdf, line, layout.x, layout.y);
@@ -147,7 +149,7 @@ function addList(pdf: JsPdf, layout: Layout, el: HTMLElement, depth = 0) {
     const textX = layout.x + (ordered ? 8.8 : 7.2) + indent;
     const lineHeight = 6.4;
     if (text) {
-      const lines = pdf.splitTextToSize(text, layout.contentWidth - 10 - indent) as string[];
+      const lines = splitTextToLines(pdf, text, layout.contentWidth - 10 - indent);
       for (const [lineIndex, line] of lines.entries()) {
         ensureSpace(pdf, layout, lineHeight);
         if (lineIndex === 0) {
@@ -170,11 +172,11 @@ function addList(pdf: JsPdf, layout: Layout, el: HTMLElement, depth = 0) {
 function addCodeBlock(pdf: JsPdf, layout: Layout, el: HTMLElement) {
   const text = (el.textContent ?? "").replace(/\n$/, "");
   if (!text.trim()) return;
-  pdf.setFont("courier", "normal");
+  pdf.setFont(PDF_FONT_NAME, "normal");
   pdf.setFontSize(TYPE.codeSize);
   const lines = text
     .split("\n")
-    .flatMap((line) => pdf.splitTextToSize(line || " ", layout.contentWidth - 10) as string[]);
+    .flatMap((line) => splitPreservedTextToLines(pdf, line, layout.contentWidth - 10));
   const lineHeight = TYPE.codeLine;
   const topPadding = 4;
   const bottomPadding = 3.2;
@@ -212,7 +214,7 @@ function addBlockquote(pdf: JsPdf, layout: Layout, el: HTMLElement) {
   pdf.setFontSize(TYPE.bodySize);
   setTextColor(pdf, COLORS.quoteText);
   const lineHeight = TYPE.bodyLine;
-  const lines = pdf.splitTextToSize(text, layout.contentWidth - 14) as string[];
+  const lines = splitTextToLines(pdf, text, layout.contentWidth - 14);
   const textBlockHeight = Math.max(lineHeight, lines.length * lineHeight);
   const boxHeight = Math.max(15, textBlockHeight + 7.2);
   ensureSpace(pdf, layout, boxHeight + 5);
@@ -244,8 +246,8 @@ function addTable(pdf: JsPdf, layout: Layout, el: HTMLElement) {
   const baselineOffset = 2.1;
   const preparedRows = rows.map((row) => {
     const cells = Array.from(row.children);
-    const cellLines = cells.map(
-      (cell) => pdf.splitTextToSize(childText(cell), columnWidth - xPadding * 2) as string[],
+    const cellLines = cells.map((cell) =>
+      splitTextToLines(pdf, childText(cell), columnWidth - xPadding * 2),
     );
     const rowHeight = Math.max(
       10.5,
@@ -321,8 +323,8 @@ function addFrontMatter(pdf: JsPdf, layout: Layout, el: HTMLElement) {
   for (const row of rows) {
     const key = childText(row.querySelector(".front-matter-key") ?? row);
     const value = childText(row.querySelector(".front-matter-value") ?? row);
-    const keyLines = pdf.splitTextToSize(key, keyWidth) as string[];
-    const valueLines = pdf.splitTextToSize(value, valueWidth) as string[];
+    const keyLines = splitTextToLines(pdf, key, keyWidth);
+    const valueLines = splitTextToLines(pdf, value, valueWidth);
     const rowHeight = Math.max(keyLines.length, valueLines.length, 1) * 4.8 + 4;
     ensureSpace(pdf, layout, rowHeight);
     pdf.setFillColor(COLORS.softer);
@@ -349,16 +351,61 @@ function addMediaFallback(pdf: JsPdf, layout: Layout, el: HTMLElement) {
       ? `Image: ${el.getAttribute("alt") || el.getAttribute("src") || ""}`
       : childText(el);
   if (!label) return;
-  ensureSpace(pdf, layout, 12);
+  pdf.setFont(PDF_FONT_NAME, "normal");
+  pdf.setFontSize(9);
+  const lines = splitTextToLines(pdf, label, layout.contentWidth - 6);
+  const height = Math.max(11, lines.length * 4.8 + 5);
+  ensureSpace(pdf, layout, height + 2);
   pdf.setFillColor(COLORS.softer);
   pdf.setDrawColor(COLORS.border);
   pdf.setLineWidth(0.25);
-  pdf.rect(layout.x, layout.y - 5, layout.contentWidth, 11, "FD");
-  pdf.setFont(PDF_FONT_NAME, "normal");
-  pdf.setFontSize(9);
+  pdf.rect(layout.x, layout.y - 5, layout.contentWidth, height, "FD");
   setTextColor(pdf, COLORS.muted);
-  drawText(pdf, label, layout.x + 3, layout.y + 2.6);
-  layout.y += 13;
+  for (const [index, line] of lines.entries()) {
+    drawText(pdf, line, layout.x + 3, layout.y + 2.6 + index * 4.8);
+  }
+  layout.y += height + 2;
+}
+
+async function imageDataUrl(img: HTMLImageElement): Promise<string | null> {
+  if (!img.complete || img.naturalWidth <= 0 || img.naturalHeight <= 0) return null;
+  const canvas = document.createElement("canvas");
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const context = canvas.getContext("2d");
+  if (!context) return null;
+  context.drawImage(img, 0, 0);
+  return canvas.toDataURL("image/png");
+}
+
+async function addImage(pdf: JsPdf, layout: Layout, img: HTMLImageElement): Promise<boolean> {
+  const dataUrl = await imageDataUrl(img).catch(() => null);
+  if (!dataUrl) return false;
+  const naturalRatio = img.naturalWidth / Math.max(img.naturalHeight, 1);
+  const width = Math.min(layout.contentWidth, img.naturalWidth * 0.264583);
+  const height = width / Math.max(naturalRatio, 0.1);
+  const maxHeight = layout.pageHeight - layout.margin - 22;
+  const drawHeight = Math.min(height, maxHeight);
+  const drawWidth = drawHeight === height ? width : drawHeight * naturalRatio;
+  ensureSpace(pdf, layout, drawHeight + 8);
+  const x = layout.x + (layout.contentWidth - drawWidth) / 2;
+  const top = layout.y - 3;
+  pdf.addImage(dataUrl, "PNG", x, top, drawWidth, drawHeight);
+  const alt = cleanText(img.getAttribute("alt") ?? "");
+  layout.y = top + drawHeight + 4;
+  if (alt) {
+    pdf.setFont(PDF_FONT_NAME, "normal");
+    pdf.setFontSize(TYPE.smallSize);
+    setTextColor(pdf, COLORS.muted);
+    const lines = splitTextToLines(pdf, alt, layout.contentWidth - 6);
+    for (const line of lines) {
+      ensureSpace(pdf, layout, 4.8);
+      drawText(pdf, line, layout.x + 3, layout.y);
+      layout.y += 4.8;
+    }
+    layout.y += 2;
+  }
+  return true;
 }
 
 async function addDisplayMath(pdf: JsPdf, layout: Layout, el: HTMLElement) {
@@ -383,7 +430,7 @@ async function addDisplayMath(pdf: JsPdf, layout: Layout, el: HTMLElement) {
       DISPLAY_MATH_HEIGHT,
     );
   } else {
-    pdf.setFont("times", "italic");
+    pdf.setFont(PDF_FONT_NAME, "normal");
     pdf.setFontSize(12);
     setTextColor(pdf, COLORS.ink);
     const textWidth = pdf.getTextWidth(text);
@@ -441,11 +488,19 @@ async function renderElement(pdf: JsPdf, layout: Layout, el: HTMLElement) {
     return;
   }
   if (el.tagName === "P") {
+    const directImages = Array.from(el.children).filter(
+      (child): child is HTMLImageElement => child.tagName === "IMG",
+    );
     await addInlineBlock(pdf, layout, el, {
       fontSize: TYPE.bodySize,
       lineHeight: TYPE.bodyLine,
       after: 4.2,
     });
+    for (const image of directImages) {
+      if (!(await addImage(pdf, layout, image))) {
+        addMediaFallback(pdf, layout, image);
+      }
+    }
     return;
   }
   if (el.tagName === "UL" || el.tagName === "OL") {
@@ -476,7 +531,13 @@ async function renderElement(pdf: JsPdf, layout: Layout, el: HTMLElement) {
     await addDisplayMath(pdf, layout, el);
     return;
   }
-  if (el.tagName === "IMG" || el.tagName === "SVG") {
+  if (el.tagName === "IMG") {
+    if (!(await addImage(pdf, layout, el as HTMLImageElement))) {
+      addMediaFallback(pdf, layout, el);
+    }
+    return;
+  }
+  if (el.tagName === "SVG") {
     addMediaFallback(pdf, layout, el);
     return;
   }

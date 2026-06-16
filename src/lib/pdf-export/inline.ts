@@ -8,9 +8,11 @@ import {
   ensureSpace,
   type Layout,
   setTextColor,
+  splitTextToLines,
 } from "@/lib/pdf-export/style";
 
 const INLINE_CODE_X_PADDING = 2.1;
+const INLINE_CODE_Y_PADDING = 1.15;
 const INLINE_MATH_HEIGHT = 4.3;
 
 type InlineKind = "normal" | "bold" | "italic" | "code" | "math";
@@ -61,9 +63,9 @@ function setInlineFont(pdf: JsPdf, segment: InlineSegment, fontSize: number) {
   if (segment.kind === "bold") {
     pdf.setFont(PDF_FONT_BOLD_NAME, "normal");
   } else if (segment.kind === "code") {
-    pdf.setFont("courier", "normal");
+    pdf.setFont(PDF_FONT_NAME, "normal");
   } else if (segment.kind === "math") {
-    pdf.setFont("times", "italic");
+    pdf.setFont(PDF_FONT_NAME, "normal");
   } else {
     pdf.setFont(PDF_FONT_NAME, "normal");
   }
@@ -72,6 +74,22 @@ function setInlineFont(pdf: JsPdf, segment: InlineSegment, fontSize: number) {
 
 function splitInlineText(text: string): string[] {
   return text.match(/[^\s]+|\s+/g) ?? [];
+}
+
+async function splitOversizeSegment(
+  pdf: JsPdf,
+  segment: InlineSegment,
+  maxWidth: number,
+): Promise<InlineSegment[]> {
+  const measured = await measureSegment(pdf, segment);
+  if (measured <= maxWidth) return [segment];
+  if (segment.kind === "math") return [segment];
+
+  const textWidth = Math.max(
+    1,
+    maxWidth - (segment.kind === "code" ? INLINE_CODE_X_PADDING * 2 : 0),
+  );
+  return splitTextToLines(pdf, segment.text, textWidth).map((text) => ({ ...segment, text }));
 }
 
 async function measureSegment(pdf: JsPdf, segment: InlineSegment): Promise<number> {
@@ -96,7 +114,13 @@ async function drawInlineSegment(
     pdf.setFillColor(COLORS.soft);
     pdf.setDrawColor(COLORS.border);
     pdf.setLineWidth(0.18);
-    pdf.rect(x - INLINE_CODE_X_PADDING, y - 3.9, width + INLINE_CODE_X_PADDING * 2, 5.2, "FD");
+    pdf.rect(
+      x - INLINE_CODE_X_PADDING,
+      y - 4.05,
+      width + INLINE_CODE_X_PADDING * 2,
+      4.95 + INLINE_CODE_Y_PADDING,
+      "FD",
+    );
     setTextColor(pdf, COLORS.text);
     drawText(pdf, segment.text, x, y);
     return width + INLINE_CODE_X_PADDING * 2;
@@ -140,20 +164,33 @@ export async function addInlineBlock(
   let cursorX = layout.x + indent;
   layout.y += before;
   ensureSpace(pdf, layout, options.lineHeight);
+  const pushLine = () => {
+    layout.y += options.lineHeight;
+    ensureSpace(pdf, layout, options.lineHeight);
+    cursorX = layout.x + indent;
+  };
   for (const [index, segment] of segments.entries()) {
     if (/^\s+$/.test(segment.text)) {
       setInlineFont(pdf, { ...segment, text: " " }, options.fontSize);
-      cursorX += Math.min(pdf.getTextWidth(" "), 1.8);
+      const spaceWidth = Math.min(pdf.getTextWidth(" "), 1.8);
+      if (cursorX > layout.x + indent && cursorX + spaceWidth > layout.x + indent + width) {
+        pushLine();
+      } else {
+        cursorX += spaceWidth;
+      }
       continue;
     }
     setInlineFont(pdf, segment, options.fontSize);
-    const segmentWidth = await measureSegment(pdf, segment);
-    if (cursorX > layout.x + indent && cursorX + segmentWidth > layout.x + indent + width) {
-      layout.y += options.lineHeight;
-      ensureSpace(pdf, layout, options.lineHeight);
-      cursorX = layout.x + indent;
+    const drawableSegments = await splitOversizeSegment(pdf, segment, width);
+    for (const [partIndex, part] of drawableSegments.entries()) {
+      setInlineFont(pdf, part, options.fontSize);
+      const segmentWidth = await measureSegment(pdf, part);
+      if (cursorX > layout.x + indent && cursorX + segmentWidth > layout.x + indent + width) {
+        pushLine();
+      }
+      cursorX += await drawInlineSegment(pdf, part, cursorX, layout.y, options.fontSize);
+      if (partIndex < drawableSegments.length - 1) pushLine();
     }
-    cursorX += await drawInlineSegment(pdf, segment, cursorX, layout.y, options.fontSize);
     const next = segments[index + 1];
     if (next && !/^\s+$/.test(next.text) && segment.kind !== next.kind) cursorX += 0.9;
   }

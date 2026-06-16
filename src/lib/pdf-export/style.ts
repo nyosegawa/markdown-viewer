@@ -40,6 +40,81 @@ export function childText(el: Element): string {
   return cleanText(el.textContent ?? "");
 }
 
+function measureText(pdf: JsPdf, text: string): number {
+  return pdf.getTextWidth(text);
+}
+
+function splitLongToken(pdf: JsPdf, token: string, width: number): string[] {
+  if (measureText(pdf, token) <= width) return [token];
+  const chunks: string[] = [];
+  let chunk = "";
+  for (const char of Array.from(token)) {
+    const next = `${chunk}${char}`;
+    if (chunk && measureText(pdf, next) > width) {
+      chunks.push(chunk);
+      chunk = char;
+    } else {
+      chunk = next;
+    }
+  }
+  if (chunk) chunks.push(chunk);
+  return chunks;
+}
+
+export function splitTextToLines(pdf: JsPdf, text: string, width: number): string[] {
+  const normalized = cleanText(text);
+  if (!normalized) return [];
+  const lines: string[] = [];
+  let line = "";
+  for (const token of normalized.match(/[^\s]+|\s+/g) ?? []) {
+    if (/^\s+$/.test(token)) {
+      if (line) line += " ";
+      continue;
+    }
+    const tokenParts = splitLongToken(pdf, token, width);
+    for (const part of tokenParts) {
+      const candidate = line ? `${line}${part}` : part;
+      if (line && measureText(pdf, candidate) > width) {
+        lines.push(line.trimEnd());
+        line = part;
+      } else {
+        line = candidate;
+      }
+    }
+  }
+  if (line) lines.push(line.trimEnd());
+  return lines.length > 0 ? lines : [normalized];
+}
+
+export function splitPreservedTextToLines(pdf: JsPdf, text: string, width: number): string[] {
+  let column = 0;
+  const expanded = Array.from(text)
+    .map((char) => {
+      if (char !== "\t") {
+        column += 1;
+        return char;
+      }
+      const spaces = 4 - (column % 4);
+      column += spaces;
+      return " ".repeat(spaces);
+    })
+    .join("");
+  if (expanded === "") return [""];
+  const lines: string[] = [];
+  let line = "";
+  for (const char of Array.from(expanded)) {
+    const candidate = `${line}${char}`;
+    if (line && measureText(pdf, candidate) > width) {
+      lines.push(line);
+      line = char;
+    } else {
+      line = candidate;
+    }
+  }
+  lines.push(line);
+  return lines;
+}
+
 export function setTextColor(pdf: JsPdf, color = COLORS.text) {
   pdf.setTextColor(color);
 }
