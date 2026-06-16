@@ -108,11 +108,21 @@ function makeExportRoot(repeat = 1): HTMLElement {
       textContent: "日本語を含む PDF export paragraph with mixed English text.".repeat(repeat),
     }),
   );
+  const inlineCodeParagraph = document.createElement("p");
+  inlineCodeParagraph.append("Long inline code ");
+  inlineCodeParagraph.appendChild(
+    Object.assign(document.createElement("code"), {
+      textContent:
+        "veryLongInlineCodeIdentifier.with.deep.property.access.andNoNaturalBreakpoints1234567890",
+    }),
+  );
+  inlineCodeParagraph.append(" followed by a URL https://example.com/very/long/path/abcdefg");
+  body.appendChild(inlineCodeParagraph);
   const list = document.createElement("ul");
   list.appendChild(Object.assign(document.createElement("li"), { textContent: "List item" }));
   body.appendChild(list);
   const pre = document.createElement("pre");
-  pre.textContent = "const ok = true;\nconsole.log(ok);";
+  pre.textContent = "const ok = true;\n// 日本語コメント\nconsole.log('日本語');";
   body.appendChild(pre);
   root.appendChild(body);
   document.body.appendChild(root);
@@ -153,6 +163,15 @@ describe("exportMarkdownPdf", () => {
     expect(pdfMocks.instances[0].fontFiles).toContain("NotoSansJP-Bold.ttf");
     expect(pdfMocks.instances[0].fontFiles).toContain("NotoSansJP-Black.ttf");
     expect(pdfMocks.instances[0].textCalls.join(" ")).toContain("Ready document");
+    expect(pdfMocks.instances[0].textCalls.join(" ")).toContain("日本語コメント");
+    expect(
+      pdfMocks.instances[0].textCalls.some((call) =>
+        call.includes(
+          "veryLongInlineCodeIdentifier.with.deep.property.access.andNoNaturalBreakpoints1234567890",
+        ),
+      ),
+    ).toBe(false);
+    expect(pdfMocks.instances[0].textCalls.join(" ")).toContain("veryLongInlineCodeIdentifier");
     expect(tauriMocks.invokeWriteBinaryFile).toHaveBeenCalledWith(
       "/tmp/export.pdf",
       expect.any(Uint8Array),

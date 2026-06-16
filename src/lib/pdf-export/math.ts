@@ -13,6 +13,10 @@ let mathDocumentPromise: Promise<{
 
 const mathSvgCache = new Map<string, MathSvg>();
 
+function hasNonAsciiText(text: string): boolean {
+  return Array.from(text).some((char) => char.charCodeAt(0) > 0x7f);
+}
+
 async function getMathDocument() {
   mathDocumentPromise ??= Promise.all([
     import("mathjax-full/js/mathjax.js"),
@@ -64,7 +68,41 @@ export async function drawMathSvg(
   width: number,
   height: number,
 ) {
+  const raster = hasNonAsciiText(rendered.svg) ? await rasterizeSvg(rendered.svg) : null;
+  if (raster) {
+    pdf.addImage(raster, "PNG", x, y, width, height);
+    return;
+  }
   const { svg2pdf } = await import("svg2pdf.js");
   const svg = new DOMParser().parseFromString(rendered.svg, "image/svg+xml").documentElement;
   await svg2pdf(svg, pdf, { x, y, width, height });
+}
+
+async function rasterizeSvg(svg: string): Promise<string | null> {
+  if (typeof Image === "undefined" || typeof document === "undefined") return null;
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (!context) return null;
+
+  const viewBox = svg
+    .match(/viewBox="([^"]+)"/)?.[1]
+    ?.split(/\s+/)
+    .map(Number);
+  const sourceWidth = viewBox && viewBox.length === 4 ? Math.max(1, viewBox[2]) : 800;
+  const sourceHeight = viewBox && viewBox.length === 4 ? Math.max(1, viewBox[3]) : 200;
+  const scale = 3;
+  canvas.width = Math.ceil(sourceWidth * scale);
+  canvas.height = Math.ceil(sourceHeight * scale);
+
+  const image = new Image();
+  const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve();
+    image.onerror = () => reject(new Error("failed to rasterize math svg"));
+    image.src = url;
+  }).catch(() => null);
+  if (!image.complete) return null;
+
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/png");
 }
