@@ -68,7 +68,9 @@ export async function drawMathSvg(
   width: number,
   height: number,
 ) {
-  const raster = hasNonAsciiText(rendered.svg) ? await rasterizeSvg(rendered.svg) : null;
+  const raster = hasNonAsciiText(rendered.svg)
+    ? await rasterizeSvg(rendered.svg, width, height)
+    : null;
   if (raster) {
     pdf.addImage(raster, "PNG", x, y, width, height);
     return;
@@ -78,21 +80,19 @@ export async function drawMathSvg(
   await svg2pdf(svg, pdf, { x, y, width, height });
 }
 
-async function rasterizeSvg(svg: string): Promise<string | null> {
+async function rasterizeSvg(
+  svg: string,
+  widthMm: number,
+  heightMm: number,
+): Promise<string | null> {
   if (typeof Image === "undefined" || typeof document === "undefined") return null;
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
   if (!context) return null;
 
-  const viewBox = svg
-    .match(/viewBox="([^"]+)"/)?.[1]
-    ?.split(/\s+/)
-    .map(Number);
-  const sourceWidth = viewBox && viewBox.length === 4 ? Math.max(1, viewBox[2]) : 800;
-  const sourceHeight = viewBox && viewBox.length === 4 ? Math.max(1, viewBox[3]) : 200;
-  const scale = 3;
-  canvas.width = Math.ceil(sourceWidth * scale);
-  canvas.height = Math.ceil(sourceHeight * scale);
+  const pxPerMm = 300 / 25.4;
+  canvas.width = Math.min(2400, Math.max(1, Math.ceil(widthMm * pxPerMm)));
+  canvas.height = Math.min(1200, Math.max(1, Math.ceil(heightMm * pxPerMm)));
 
   const image = new Image();
   const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;

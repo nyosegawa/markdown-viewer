@@ -86,6 +86,23 @@ export function splitTextToLines(pdf: JsPdf, text: string, width: number): strin
   return lines.length > 0 ? lines : [normalized];
 }
 
+export function splitPreservedTextToLines(pdf: JsPdf, text: string, width: number): string[] {
+  if (text === "") return [""];
+  const lines: string[] = [];
+  let line = "";
+  for (const char of Array.from(text)) {
+    const candidate = `${line}${char}`;
+    if (line && measureText(pdf, candidate) > width) {
+      lines.push(line);
+      line = char;
+    } else {
+      line = candidate;
+    }
+  }
+  lines.push(line);
+  return lines;
+}
+
 export function setTextColor(pdf: JsPdf, color = COLORS.text) {
   pdf.setTextColor(color);
 }

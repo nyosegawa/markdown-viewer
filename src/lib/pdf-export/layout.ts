@@ -16,6 +16,7 @@ import {
   ensureSpace,
   type Layout,
   setTextColor,
+  splitPreservedTextToLines,
   splitTextToLines,
   TYPE,
 } from "@/lib/pdf-export/style";
@@ -175,7 +176,7 @@ function addCodeBlock(pdf: JsPdf, layout: Layout, el: HTMLElement) {
   pdf.setFontSize(TYPE.codeSize);
   const lines = text
     .split("\n")
-    .flatMap((line) => splitTextToLines(pdf, line || " ", layout.contentWidth - 10));
+    .flatMap((line) => splitPreservedTextToLines(pdf, line, layout.contentWidth - 10));
   const lineHeight = TYPE.codeLine;
   const topPadding = 4;
   const bottomPadding = 3.2;
