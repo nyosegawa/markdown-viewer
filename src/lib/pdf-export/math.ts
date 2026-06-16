@@ -96,13 +96,17 @@ async function rasterizeSvg(
 
   const image = new Image();
   const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  await new Promise<void>((resolve, reject) => {
-    image.onload = () => resolve();
-    image.onerror = () => reject(new Error("failed to rasterize math svg"));
+  const loaded = await new Promise<boolean>((resolve) => {
+    image.onload = () => resolve(true);
+    image.onerror = () => resolve(false);
     image.src = url;
-  }).catch(() => null);
-  if (!image.complete) return null;
+  });
+  if (!loaded) return null;
 
-  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  try {
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  } catch {
+    return null;
+  }
   return canvas.toDataURL("image/png");
 }

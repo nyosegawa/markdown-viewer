@@ -123,7 +123,7 @@ function makeExportRoot(repeat = 1): HTMLElement {
   body.appendChild(list);
   const pre = document.createElement("pre");
   pre.textContent =
-    "const ok = true;\n  const aligned  = 'keeps spaces';\n\n// 日本語コメント\nconsole.log('日本語');";
+    "const ok = true;\n\tconst tabbed = 'expands tabs';\n  const aligned  = 'keeps spaces';\n\n// 日本語コメント\nconsole.log('日本語');";
   body.appendChild(pre);
   root.appendChild(body);
   document.body.appendChild(root);
@@ -164,6 +164,7 @@ describe("exportMarkdownPdf", () => {
     expect(pdfMocks.instances[0].fontFiles).toContain("NotoSansJP-Bold.ttf");
     expect(pdfMocks.instances[0].fontFiles).toContain("NotoSansJP-Black.ttf");
     expect(pdfMocks.instances[0].textCalls.join(" ")).toContain("Ready document");
+    expect(pdfMocks.instances[0].textCalls).toContain("    const tabbed = 'expands tabs';");
     expect(pdfMocks.instances[0].textCalls).toContain("  const aligned  = 'keeps spaces';");
     expect(pdfMocks.instances[0].textCalls).toContain("");
     expect(pdfMocks.instances[0].textCalls.join(" ")).toContain("日本語コメント");
