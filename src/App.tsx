@@ -23,6 +23,7 @@ import {
   listenOpenFile,
   openFileDialog,
   resolveAgainstBase,
+  startWindowDrag,
 } from "@/lib/tauri";
 
 const PrintMarkdownRenderer = lazy(async () => {
@@ -106,6 +107,10 @@ function App() {
     void invokeRevealInFileManager(path).catch((err) => {
       console.warn("reveal failed", err);
     });
+  }, []);
+
+  const handleStartWindowDrag = useCallback(() => {
+    void startWindowDrag();
   }, []);
 
   const handleRenameActive = useCallback(
@@ -319,6 +324,7 @@ function App() {
         onPrintPdf={handlePrintPdf}
         canPrintPdf={activeTab?.status === "ready"}
         onShowHelp={() => setHelpOpen(true)}
+        onStartWindowDrag={handleStartWindowDrag}
       />
 
       {hasTabs ? (
@@ -334,6 +340,7 @@ function App() {
           onRevealInFileManager={handleReveal}
           onReorder={moveTab}
           onRename={(id, filenameStem) => renameTab(id, filenameStem).then(() => undefined)}
+          onStartWindowDrag={handleStartWindowDrag}
         />
       ) : null}
 

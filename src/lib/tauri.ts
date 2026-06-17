@@ -162,6 +162,16 @@ export async function setNativeTheme(theme: "light" | "dark"): Promise<void> {
   }
 }
 
+export async function startWindowDrag(): Promise<void> {
+  if (!isTauri()) return;
+  try {
+    const { getCurrentWindow } = await import("@tauri-apps/api/window");
+    await getCurrentWindow().startDragging();
+  } catch (err) {
+    console.warn("startDragging failed", err);
+  }
+}
+
 export async function getCliPath(): Promise<string | null> {
   if (!isTauri()) return null;
   const { getMatches } = await import("@tauri-apps/plugin-cli");

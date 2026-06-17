@@ -1,3 +1,4 @@
+import type { PointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { Theme } from "@/hooks/useTheme";
 import { basename, dirname, normalizeRenameStem, splitFilename } from "@/lib/path-label";
@@ -22,6 +23,13 @@ export interface ToolbarProps {
   onPrintPdf?: () => void;
   canPrintPdf?: boolean;
   onShowHelp?: () => void;
+  onStartWindowDrag?: () => void;
+}
+
+function shouldStartWindowDrag(e: PointerEvent<HTMLElement>): boolean {
+  if (e.button !== 0 || e.detail > 1) return false;
+  if ((e.target as HTMLElement).closest("[data-window-drag-blocker]")) return false;
+  return true;
 }
 
 function FileOpenIcon() {
@@ -197,6 +205,7 @@ export function Toolbar({
   onPrintPdf,
   canPrintPdf,
   onShowHelp,
+  onStartWindowDrag,
 }: ToolbarProps) {
   const [recentOpen, setRecentOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState<{ value: string; error: string | null } | null>(
@@ -257,8 +266,16 @@ export function Toolbar({
   };
 
   return (
-    <header className="toolbar" role="toolbar" aria-label="Main toolbar" data-tauri-drag-region>
-      <div className="toolbar-group">
+    <header
+      className="toolbar"
+      role="toolbar"
+      aria-label="Main toolbar"
+      data-tauri-drag-region
+      onPointerDown={(e) => {
+        if (shouldStartWindowDrag(e)) onStartWindowDrag?.();
+      }}
+    >
+      <div className="toolbar-group" data-window-drag-blocker>
         <button
           type="button"
           className="toolbar-btn toolbar-icon-btn"
@@ -322,6 +339,7 @@ export function Toolbar({
           className={editingTitle.error ? "toolbar-title is-renaming is-error" : "toolbar-title"}
           data-testid="title"
           title={editingTitle.error ?? path}
+          data-window-drag-blocker
         >
           <span className="title-rename">
             <input
@@ -360,6 +378,7 @@ export function Toolbar({
             <button
               type="button"
               className="toolbar-title-name is-renamable"
+              data-window-drag-blocker
               onDoubleClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -386,7 +405,7 @@ export function Toolbar({
         </div>
       )}
 
-      <div className="toolbar-group">
+      <div className="toolbar-group" data-window-drag-blocker>
         {onCopySource ? (
           <button
             type="button"

@@ -103,4 +103,32 @@ describe("Toolbar", () => {
     expect(screen.queryByRole("textbox", { name: "Rename active file" })).not.toBeInTheDocument();
     expect(screen.getByTestId("title")).toHaveAttribute("data-tauri-drag-region");
   });
+
+  it("keeps toolbar controls and filename out of the native drag hotspot", () => {
+    render(<Toolbar {...baseProps()} path="/tmp/hello.md" />);
+
+    expect(screen.getByRole("toolbar", { name: "Main toolbar" })).toHaveAttribute(
+      "data-tauri-drag-region",
+    );
+    expect(screen.getByTestId("title")).toHaveAttribute("data-tauri-drag-region");
+    expect(screen.getByTestId("title-rename-hotspot")).toHaveClass("toolbar-title-name");
+    expect(screen.getByRole("button", { name: "Open file" })).toHaveClass("toolbar-btn");
+    expect(screen.getByTestId("mode-btn")).toHaveClass("toolbar-btn");
+  });
+
+  it("starts native window drag from titlebar whitespace only", () => {
+    const onStartWindowDrag = vi.fn();
+    render(<Toolbar {...baseProps()} path="/tmp/hello.md" onStartWindowDrag={onStartWindowDrag} />);
+
+    fireEvent.pointerDown(screen.getByTestId("title"), { button: 0, detail: 1 });
+    expect(onStartWindowDrag).toHaveBeenCalledOnce();
+
+    fireEvent.pointerDown(screen.getByTestId("title"), { button: 0, detail: 2 });
+    fireEvent.pointerDown(screen.getByTestId("title-rename-hotspot"), { button: 0, detail: 1 });
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Open file" }), {
+      button: 0,
+      detail: 1,
+    });
+    expect(onStartWindowDrag).toHaveBeenCalledOnce();
+  });
 });

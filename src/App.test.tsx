@@ -15,6 +15,7 @@ const tauriMocks = vi.hoisted(() => ({
   getCliPath: vi.fn(async () => null as string | null),
   drainPendingOpenFiles: vi.fn(async () => [] as string[]),
   setNativeTheme: vi.fn(async () => undefined),
+  startWindowDrag: vi.fn(async () => undefined),
 }));
 
 vi.mock("@/lib/tauri", () => tauriMocks);

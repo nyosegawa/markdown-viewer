@@ -18,6 +18,7 @@ export interface TabsProps {
   onRevealInFileManager: (path: string) => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
   onRename: (id: string, filenameStem: string) => Promise<void>;
+  onStartWindowDrag?: () => void;
 }
 
 interface MenuState {
@@ -50,6 +51,7 @@ export function Tabs({
   onRevealInFileManager,
   onReorder,
   onRename,
+  onStartWindowDrag,
 }: TabsProps) {
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
@@ -276,7 +278,13 @@ export function Tabs({
         role="tablist"
         aria-label="Open files"
         data-testid="tab-bar"
+        data-tauri-drag-region
         ref={barRef}
+        onPointerDown={(e) => {
+          if (e.button === 0 && e.detail <= 1 && !(e.target as HTMLElement).closest(".tab")) {
+            onStartWindowDrag?.();
+          }
+        }}
       >
         {tabs.map((t, i) => {
           const isActive = t.id === activeId;
