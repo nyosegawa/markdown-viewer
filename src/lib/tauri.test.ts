@@ -14,6 +14,7 @@ import {
   listenOpenFile,
   openFileDialog,
   setNativeTheme,
+  startWindowDrag,
 } from "./tauri";
 
 describe("lib/tauri stubs in non-Tauri env", () => {
@@ -77,6 +78,12 @@ describe("lib/tauri stubs in non-Tauri env", () => {
   it("setNativeTheme is a silent no-op", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     await expect(setNativeTheme("dark")).resolves.toBeUndefined();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("startWindowDrag is a silent no-op outside Tauri", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await expect(startWindowDrag()).resolves.toBeUndefined();
     expect(warn).not.toHaveBeenCalled();
   });
 });

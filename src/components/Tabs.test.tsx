@@ -53,6 +53,26 @@ describe("Tabs", () => {
     expect(props.onActivate).toHaveBeenCalledWith("b");
   });
 
+  it("allows the empty tab strip to act as a native window drag region", () => {
+    const props = baseProps();
+    render(<Tabs tabs={[makeTab("/a.md", "a")]} activeId="a" {...props} />);
+
+    expect(screen.getByTestId("tab-bar")).toHaveAttribute("data-tauri-drag-region");
+    expect(screen.getByTestId("tab-0")).toHaveAttribute("role", "tab");
+  });
+
+  it("starts native window drag from empty tab strip space only", () => {
+    const props = { ...baseProps(), onStartWindowDrag: vi.fn() };
+    render(<Tabs tabs={[makeTab("/a.md", "a")]} activeId="a" {...props} />);
+
+    fireEvent.pointerDown(screen.getByTestId("tab-bar"), { button: 0, detail: 1 });
+    expect(props.onStartWindowDrag).toHaveBeenCalledOnce();
+
+    fireEvent.pointerDown(screen.getByTestId("tab-bar"), { button: 0, detail: 2 });
+    fireEvent.pointerDown(screen.getByTestId("tab-0"), { button: 0, detail: 1 });
+    expect(props.onStartWindowDrag).toHaveBeenCalledOnce();
+  });
+
   it("clicking × calls onClose and stops propagation", async () => {
     const props = baseProps();
     render(<Tabs tabs={[makeTab("/a.md", "a")]} activeId="a" {...props} />);
