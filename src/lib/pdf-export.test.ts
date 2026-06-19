@@ -12,9 +12,24 @@ const dialogMocks = vi.hoisted(() => ({
 const pdfMocks = vi.hoisted(() => {
   const instances: FakePdf[] = [];
 
+  interface TextDraw {
+    text: string;
+    x: number;
+    y: number;
+  }
+
+  interface RectDraw {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }
+
   class FakePdf {
     pages = 1;
     textCalls: string[] = [];
+    textDraws: TextDraw[] = [];
+    rectDraws: RectDraw[] = [];
     rectCalls = 0;
     fontFiles: string[] = [];
     internal = {
@@ -43,8 +58,9 @@ const pdfMocks = vi.hoisted(() => {
     setPage() {}
     circle() {}
 
-    rect() {
+    rect(x: number, y: number, width: number, height: number) {
       this.rectCalls += 1;
+      this.rectDraws.push({ x, y, width, height });
     }
 
     getNumberOfPages() {
@@ -64,8 +80,9 @@ const pdfMocks = vi.hoisted(() => {
       return lines.length > 0 ? lines : [""];
     }
 
-    text(text: string) {
+    text(text: string, x = 0, y = 0) {
       this.textCalls.push(text);
+      this.textDraws.push({ text, x, y });
     }
 
     output() {
@@ -98,12 +115,20 @@ vi.mock("jspdf", () => ({ jsPDF: pdfMocks.jsPDF }));
 
 import { exportMarkdownPdf } from "./pdf-export";
 
-function makeExportRoot(repeat = 1): HTMLElement {
+function makeRootWithBody(...children: HTMLElement[]): HTMLElement {
   const root = document.createElement("div");
   const body = document.createElement("article");
   body.className = "markdown-body";
-  body.appendChild(Object.assign(document.createElement("h1"), { textContent: "Ready document" }));
-  body.appendChild(
+  body.append(...children);
+  root.appendChild(body);
+  document.body.appendChild(root);
+  return root;
+}
+
+function makeExportRoot(repeat = 1): HTMLElement {
+  const children: HTMLElement[] = [];
+  children.push(Object.assign(document.createElement("h1"), { textContent: "Ready document" }));
+  children.push(
     Object.assign(document.createElement("p"), {
       textContent: "日本語を含む PDF export paragraph with mixed English text.".repeat(repeat),
     }),
@@ -117,17 +142,15 @@ function makeExportRoot(repeat = 1): HTMLElement {
     }),
   );
   inlineCodeParagraph.append(" followed by a URL https://example.com/very/long/path/abcdefg");
-  body.appendChild(inlineCodeParagraph);
+  children.push(inlineCodeParagraph);
   const list = document.createElement("ul");
   list.appendChild(Object.assign(document.createElement("li"), { textContent: "List item" }));
-  body.appendChild(list);
+  children.push(list);
   const pre = document.createElement("pre");
   pre.textContent =
     "const ok = true;\n\tconst tabbed = 'expands tabs';\nkey\tvalue\n  const aligned  = 'keeps spaces';\n\n// 日本語コメント\nconsole.log('日本語');";
-  body.appendChild(pre);
-  root.appendChild(body);
-  document.body.appendChild(root);
-  return root;
+  children.push(pre);
+  return makeRootWithBody(...children);
 }
 
 describe("exportMarkdownPdf", () => {
@@ -192,6 +215,58 @@ describe("exportMarkdownPdf", () => {
     expect(performance.now() - startedAt).toBeLessThan(2_000);
     expect(pdfMocks.instances[0].pages).toBeGreaterThan(1);
     expect(tauriMocks.invokeWriteBinaryFile).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps inline code padding out of the surrounding text", async () => {
+    const paragraph = document.createElement("p");
+    paragraph.append("GCP では");
+    paragraph.appendChild(Object.assign(document.createElement("code"), { textContent: ".auth/" }));
+    paragraph.append("の扱いが設計上の要点。");
+    const root = makeRootWithBody(paragraph);
+
+    await exportMarkdownPdf({ root, sourcePath: "/docs/inline.md" });
+
+    const pdf = pdfMocks.instances[0];
+    const before = pdf.textDraws.find((draw) => draw.text === "では");
+    const code = pdf.textDraws.find((draw) => draw.text === ".auth/");
+    const after = pdf.textDraws.find((draw) => draw.text === "の扱いが設計上の要点。");
+    const codeRect = pdf.rectDraws.find(
+      (rect) => code && rect.x < code.x && code.x < rect.x + rect.width,
+    );
+    expect(before).toBeDefined();
+    expect(code).toBeDefined();
+    expect(after).toBeDefined();
+    expect(codeRect).toBeDefined();
+    expect(codeRect?.x).toBeGreaterThanOrEqual((before?.x ?? 0) + pdf.getTextWidth("では"));
+    expect(code?.x).toBeGreaterThan(codeRect?.x ?? 0);
+    expect(after?.x).toBeGreaterThan((codeRect?.x ?? 0) + (codeRect?.width ?? 0));
+  });
+
+  it("adds readable space after code blocks before drawing following paragraphs", async () => {
+    const pre = document.createElement("pre");
+    pre.textContent = "/app/runtime/.auth\n/app/runtime/state";
+    const paragraph = Object.assign(document.createElement("p"), {
+      textContent: "初期実装は repo root の既存 path に合わせる。",
+    });
+    const root = makeRootWithBody(pre, paragraph);
+
+    await exportMarkdownPdf({ root, sourcePath: "/docs/code.md" });
+
+    const pdf = pdfMocks.instances[0];
+    const codeLine = pdf.textDraws.find((draw) => draw.text === "/app/runtime/state");
+    const codeRect = pdf.rectDraws.find(
+      (rect) =>
+        codeLine &&
+        rect.x < codeLine.x &&
+        codeLine.x < rect.x + rect.width &&
+        rect.y < codeLine.y &&
+        codeLine.y < rect.y + rect.height,
+    );
+    const following = pdf.textDraws.find((draw) => draw.text === "初期実装は");
+    expect(codeLine).toBeDefined();
+    expect(codeRect).toBeDefined();
+    expect(following).toBeDefined();
+    expect((following?.y ?? 0) - ((codeRect?.y ?? 0) + (codeRect?.height ?? 0))).toBeGreaterThan(6);
   });
 
   it("does not render or write when the save dialog is cancelled", async () => {
