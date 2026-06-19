@@ -23,6 +23,7 @@ import {
 
 const QUOTE_TEXT_BASELINE_OFFSET = 4.65;
 const DISPLAY_MATH_HEIGHT = 11;
+const CODE_BLOCK_AFTER = 7.2;
 
 function drawRule(pdf: JsPdf, layout: Layout, y: number, color = COLORS.rule) {
   pdf.setDrawColor(color);
@@ -202,7 +203,7 @@ function addCodeBlock(pdf: JsPdf, layout: Layout, el: HTMLElement) {
       drawText(pdf, line, layout.x + 5, lineY);
       lineY += lineHeight;
     }
-    layout.y = boxTop + boxHeight + 3.2;
+    layout.y = boxTop + boxHeight + CODE_BLOCK_AFTER;
     index += chunk.length;
   }
 }

@@ -13,6 +13,7 @@ import {
 
 const INLINE_CODE_X_PADDING = 2.1;
 const INLINE_CODE_Y_PADDING = 1.15;
+const INLINE_CODE_GAP = 0.7;
 const INLINE_MATH_HEIGHT = 4.3;
 
 type InlineKind = "normal" | "bold" | "italic" | "code" | "math";
@@ -93,7 +94,9 @@ async function splitOversizeSegment(
 }
 
 async function measureSegment(pdf: JsPdf, segment: InlineSegment): Promise<number> {
-  if (segment.kind === "code") return pdf.getTextWidth(segment.text) + INLINE_CODE_X_PADDING * 2;
+  if (segment.kind === "code") {
+    return pdf.getTextWidth(segment.text) + INLINE_CODE_X_PADDING * 2 + INLINE_CODE_GAP;
+  }
   if (segment.kind === "math") {
     const rendered = await renderMathSvg(segment.text, false);
     return Math.min(46, INLINE_MATH_HEIGHT * (rendered?.aspectRatio ?? 4));
@@ -111,19 +114,14 @@ async function drawInlineSegment(
   setInlineFont(pdf, segment, fontSize);
   if (segment.kind === "code") {
     const width = pdf.getTextWidth(segment.text);
+    const textX = x + INLINE_CODE_X_PADDING;
     pdf.setFillColor(COLORS.soft);
     pdf.setDrawColor(COLORS.border);
     pdf.setLineWidth(0.18);
-    pdf.rect(
-      x - INLINE_CODE_X_PADDING,
-      y - 4.05,
-      width + INLINE_CODE_X_PADDING * 2,
-      4.95 + INLINE_CODE_Y_PADDING,
-      "FD",
-    );
+    pdf.rect(x, y - 4.05, width + INLINE_CODE_X_PADDING * 2, 4.95 + INLINE_CODE_Y_PADDING, "FD");
     setTextColor(pdf, COLORS.text);
-    drawText(pdf, segment.text, x, y);
-    return width + INLINE_CODE_X_PADDING * 2;
+    drawText(pdf, segment.text, textX, y);
+    return width + INLINE_CODE_X_PADDING * 2 + INLINE_CODE_GAP;
   }
   if (segment.kind === "math") {
     const rendered = await renderMathSvg(segment.text, false);
