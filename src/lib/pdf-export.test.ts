@@ -254,10 +254,19 @@ describe("exportMarkdownPdf", () => {
 
     const pdf = pdfMocks.instances[0];
     const codeLine = pdf.textDraws.find((draw) => draw.text === "/app/runtime/state");
+    const codeRect = pdf.rectDraws.find(
+      (rect) =>
+        codeLine &&
+        rect.x < codeLine.x &&
+        codeLine.x < rect.x + rect.width &&
+        rect.y < codeLine.y &&
+        codeLine.y < rect.y + rect.height,
+    );
     const following = pdf.textDraws.find((draw) => draw.text === "初期実装は");
     expect(codeLine).toBeDefined();
+    expect(codeRect).toBeDefined();
     expect(following).toBeDefined();
-    expect((following?.y ?? 0) - (codeLine?.y ?? 0)).toBeGreaterThan(8);
+    expect((following?.y ?? 0) - ((codeRect?.y ?? 0) + (codeRect?.height ?? 0))).toBeGreaterThan(6);
   });
 
   it("does not render or write when the save dialog is cancelled", async () => {
