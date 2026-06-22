@@ -103,4 +103,20 @@ describe("MarkdownRenderer (integration: Shiki + KaTeX)", () => {
     );
     expect(inlineCode).toBeDefined();
   }, 25000);
+
+  it("routes mermaid blocks before Shiki can treat them as code", async () => {
+    const src = "```mermaid\ngraph TD\n  A[Start] --> B[Done]\n```\n";
+    const { container } = render(<MarkdownRenderer source={src} />);
+
+    await waitFor(
+      () => {
+        expect(container.querySelector(".mermaid-diagram")).not.toBeNull();
+      },
+      { timeout: 25000 },
+    );
+
+    expect(container.querySelector(".mermaid-diagram")).not.toBeNull();
+    expect(container.querySelector("pre code.language-mermaid")).toBeNull();
+    expect(container.textContent).not.toContain("Loading");
+  }, 30000);
 });

@@ -7,6 +7,7 @@ import {
 } from "@/lib/pdf-export/fonts";
 import { addInlineBlock, mathSourceText } from "@/lib/pdf-export/inline";
 import { drawMathSvg, renderMathSvg } from "@/lib/pdf-export/math";
+import { addMermaidDiagram } from "@/lib/pdf-export/mermaid";
 import {
   COLORS,
   childText,
@@ -350,7 +351,9 @@ function addMediaFallback(pdf: JsPdf, layout: Layout, el: HTMLElement) {
   const label =
     el.tagName === "IMG"
       ? `Image: ${el.getAttribute("alt") || el.getAttribute("src") || ""}`
-      : childText(el);
+      : el.classList.contains("mermaid-diagram")
+        ? (el.dataset.mermaidSource ?? childText(el))
+        : childText(el);
   if (!label) return;
   pdf.setFont(PDF_FONT_NAME, "normal");
   pdf.setFontSize(9);
@@ -510,6 +513,12 @@ async function renderElement(pdf: JsPdf, layout: Layout, el: HTMLElement) {
   }
   if (el.tagName === "PRE") {
     addCodeBlock(pdf, layout, el);
+    return;
+  }
+  if (el.classList.contains("mermaid-diagram")) {
+    if (!(await addMermaidDiagram(pdf, layout, el))) {
+      addMediaFallback(pdf, layout, el);
+    }
     return;
   }
   if (el.tagName === "BLOCKQUOTE") {

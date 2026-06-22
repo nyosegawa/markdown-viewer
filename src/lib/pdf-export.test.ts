@@ -31,6 +31,7 @@ const pdfMocks = vi.hoisted(() => {
     textDraws: TextDraw[] = [];
     rectDraws: RectDraw[] = [];
     rectCalls = 0;
+    imageCalls = 0;
     fontFiles: string[] = [];
     internal = {
       pageSize: {
@@ -57,6 +58,9 @@ const pdfMocks = vi.hoisted(() => {
     line() {}
     setPage() {}
     circle() {}
+    addImage() {
+      this.imageCalls += 1;
+    }
 
     rect(x: number, y: number, width: number, height: number) {
       this.rectCalls += 1;
@@ -112,7 +116,11 @@ vi.mock("@/assets/fonts/NotoSansJP-Regular.ttf?url", () => ({
   default: "/assets/NotoSansJP-Regular.ttf",
 }));
 vi.mock("jspdf", () => ({ jsPDF: pdfMocks.jsPDF }));
+vi.mock("svg2pdf.js", () => ({
+  svg2pdf: vi.fn(async () => undefined),
+}));
 
+import { svg2pdf } from "svg2pdf.js";
 import { exportMarkdownPdf } from "./pdf-export";
 
 function makeRootWithBody(...children: HTMLElement[]): HTMLElement {
@@ -169,6 +177,7 @@ describe("exportMarkdownPdf", () => {
     tauriMocks.isTauri.mockReturnValue(true);
     pdfMocks.jsPDF.mockClear();
     pdfMocks.instances.length = 0;
+    vi.mocked(svg2pdf).mockClear();
   });
 
   it("asks for a target, embeds the PDF font, and writes the generated PDF", async () => {
@@ -267,6 +276,158 @@ describe("exportMarkdownPdf", () => {
     expect(codeRect).toBeDefined();
     expect(following).toBeDefined();
     expect((following?.y ?? 0) - ((codeRect?.y ?? 0) + (codeRect?.height ?? 0))).toBeGreaterThan(6);
+  });
+
+  it("exports rendered mermaid diagrams as vector SVG instead of code text", async () => {
+    const figure = document.createElement("figure");
+    figure.className = "mermaid-diagram";
+    figure.dataset.mermaidSource = "graph TD\nA --> B";
+    figure.dataset.mermaidStatus = "rendered";
+    figure.innerHTML =
+      '<div class="mermaid-diagram-svg"><svg viewBox="0 0 200 100"><path d="M0 0L200 100"/><foreignObject x="20" y="30" width="80" height="24"><div>Node A</div></foreignObject></svg></div>';
+    const root = makeRootWithBody(figure);
+
+    await exportMarkdownPdf({ root, sourcePath: "/docs/diagram.md" });
+
+    expect(svg2pdf).toHaveBeenCalledTimes(1);
+    const svg = vi.mocked(svg2pdf).mock.calls[0]?.[0] as SVGSVGElement;
+    const text = svg.querySelector("text");
+    expect(svg.querySelector("foreignObject")).toBeNull();
+    expect(text?.textContent).toBe("Node A");
+    expect(text?.getAttribute("x")).toBe("60");
+    expect(text?.getAttribute("text-anchor")).toBe("middle");
+    expect(Number(text?.getAttribute("y"))).toBeCloseTo(47.6, 1);
+    expect(pdfMocks.instances[0].imageCalls).toBe(0);
+    expect(pdfMocks.instances[0].textCalls.join(" ")).not.toContain("graph TD");
+    expect(tauriMocks.invokeWriteBinaryFile).toHaveBeenCalledWith(
+      "/tmp/export.pdf",
+      expect.any(Uint8Array),
+    );
+  });
+
+  it("preserves multi-line mermaid labels when converting foreignObject labels for PDF", async () => {
+    const figure = document.createElement("figure");
+    figure.className = "mermaid-diagram";
+    figure.dataset.mermaidSource = "graph TD\nA[Line 1<br/>Line 2]";
+    figure.dataset.mermaidStatus = "rendered";
+    figure.innerHTML =
+      '<div class="mermaid-diagram-svg"><svg viewBox="0 0 200 100"><foreignObject x="20" y="30" width="100" height="60"><div><span>Line 1</span><br><span>Line 2</span></div></foreignObject></svg></div>';
+    const root = makeRootWithBody(figure);
+
+    await exportMarkdownPdf({ root, sourcePath: "/docs/multiline-diagram.md" });
+
+    const svg = vi.mocked(svg2pdf).mock.calls[0]?.[0] as SVGSVGElement;
+    const text = svg.querySelector("text");
+    const tspans = Array.from(svg.querySelectorAll("tspan"));
+    expect(text?.getAttribute("x")).toBe("70");
+    expect(Number(text?.getAttribute("y"))).toBeCloseTo(56, 1);
+    expect(tspans.map((tspan) => tspan.textContent)).toEqual(["Line 1", "Line 2"]);
+    expect(tspans[0]?.getAttribute("x")).toBe("70");
+    expect(tspans[1]?.getAttribute("x")).toBe("70");
+    expect(tspans[1]?.getAttribute("dy")).toBe("19.2");
+  });
+
+  it("waits for mermaid rendering before exporting", async () => {
+    const figure = document.createElement("figure");
+    figure.className = "mermaid-diagram";
+    figure.dataset.mermaidStatus = "loading";
+    figure.dataset.mermaidSource = "graph TD\nA --> B";
+    const root = makeRootWithBody(figure);
+
+    window.setTimeout(() => {
+      figure.dataset.mermaidStatus = "rendered";
+      figure.innerHTML = '<svg viewBox="0 0 200 100"><path d="M0 0L200 100"/></svg>';
+    }, 20);
+
+    await exportMarkdownPdf({ root, sourcePath: "/docs/wait.md" });
+
+    expect(svg2pdf).toHaveBeenCalledTimes(1);
+  });
+
+  it("waits when a mermaid diagram is marked rendered before its SVG is inserted", async () => {
+    const figure = document.createElement("figure");
+    figure.className = "mermaid-diagram";
+    figure.dataset.mermaidStatus = "rendered";
+    figure.dataset.mermaidSource = "graph TD\nA --> B";
+    const root = makeRootWithBody(figure);
+
+    window.setTimeout(() => {
+      figure.innerHTML = '<svg viewBox="0 0 200 100"><path d="M0 0L200 100"/></svg>';
+    }, 20);
+
+    await exportMarkdownPdf({ root, sourcePath: "/docs/render-race.md" });
+
+    expect(svg2pdf).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to readable mermaid source when SVG conversion fails", async () => {
+    vi.mocked(svg2pdf).mockRejectedValueOnce(new Error("unsupported svg feature"));
+    const figure = document.createElement("figure");
+    figure.className = "mermaid-diagram";
+    figure.dataset.mermaidSource = "graph TD\nA --> B";
+    figure.dataset.mermaidStatus = "rendered";
+    figure.innerHTML = '<svg viewBox="0 0 200 100"><path d="M0 0L200 100"/></svg>';
+    const root = makeRootWithBody(figure);
+
+    await exportMarkdownPdf({ root, sourcePath: "/docs/fallback.md" });
+
+    expect(svg2pdf).toHaveBeenCalledTimes(1);
+    expect(pdfMocks.instances[0].textCalls.join(" ")).toContain("graph TD");
+    expect(tauriMocks.invokeWriteBinaryFile).toHaveBeenCalledWith(
+      "/tmp/export.pdf",
+      expect.any(Uint8Array),
+    );
+  });
+
+  it("caps tall mermaid diagrams so ordinary documents do not jump to a new page", async () => {
+    const heading = Object.assign(document.createElement("h1"), {
+      textContent: "Mermaid PDF verification",
+    });
+    const before = Object.assign(document.createElement("p"), {
+      textContent: "Before diagram paragraph.",
+    });
+    const figure = document.createElement("figure");
+    figure.className = "mermaid-diagram";
+    figure.dataset.mermaidSource = "flowchart TD\nA --> B\nB --> C";
+    figure.dataset.mermaidStatus = "rendered";
+    figure.innerHTML = '<svg viewBox="0 0 120 900"><path d="M0 0L120 900"/></svg>';
+    const after = Object.assign(document.createElement("p"), {
+      textContent: "After diagram paragraph.",
+    });
+    const root = makeRootWithBody(heading, before, figure, after);
+
+    await exportMarkdownPdf({ root, sourcePath: "/docs/tall-mermaid.md" });
+
+    expect(pdfMocks.instances[0].pages).toBe(1);
+    expect(pdfMocks.instances[0].textCalls.join(" ")).toContain("After diagram paragraph.");
+  });
+
+  it("sizes mermaid PDF output from the drawn content box instead of whitespace-heavy viewBox", async () => {
+    const figure = document.createElement("figure");
+    figure.className = "mermaid-diagram";
+    figure.dataset.mermaidSource = "flowchart TD\nA --> B";
+    figure.dataset.mermaidStatus = "rendered";
+    figure.innerHTML = '<svg viewBox="0 0 700 1000"><g><path d="M0 0L500 120"/></g></svg>';
+    const svg = figure.querySelector("svg") as SVGSVGElement;
+    svg.getBBox = () => new DOMRect(80, 430, 540, 120);
+    const root = makeRootWithBody(figure);
+
+    await exportMarkdownPdf({ root, sourcePath: "/docs/cropped-mermaid.md" });
+
+    const pdf = pdfMocks.instances[0];
+    const diagramRect = pdf.rectDraws.find((rect) => rect.width > 100);
+    expect(diagramRect).toBeDefined();
+    expect(diagramRect?.height).toBeLessThan(55);
+    expect(svg2pdf).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tagName: expect.stringMatching(/^svg$/i),
+      }),
+      pdf,
+      expect.objectContaining({
+        height: expect.any(Number),
+        width: expect.any(Number),
+      }),
+    );
   });
 
   it("does not render or write when the save dialog is cancelled", async () => {

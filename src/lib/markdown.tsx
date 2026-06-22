@@ -1,5 +1,6 @@
 import type { Schema } from "hast-util-sanitize";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
+import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
@@ -10,6 +11,8 @@ import remarkMath from "remark-math";
 import type { PluggableList } from "unified";
 import { useFitDisplayMath } from "../hooks/useFitDisplayMath";
 import { extractFrontMatter, type FrontMatterMatch } from "./front-matter";
+import { MermaidDiagram } from "./mermaid/MermaidDiagram";
+import rehypeMermaid from "./mermaid/rehype";
 import rehypeSourcePosition from "./rehype-source-position";
 
 const baseTagNames = defaultSchema.tagNames ?? [];
@@ -18,6 +21,7 @@ const baseWildcard = baseAttributes["*"] ?? [];
 const baseSpan = baseAttributes.span ?? [];
 const baseCode = baseAttributes.code ?? [];
 const basePre = baseAttributes.pre ?? [];
+const baseDiv = baseAttributes.div ?? [];
 const HEADING_TAGS = ["h1", "h2", "h3", "h4", "h5", "h6"] as const;
 
 // MathML tags emitted by rehype-katex for its accessible annotation output.
@@ -81,6 +85,7 @@ const katexSchema: Schema = {
     span: [...baseSpan, "aria-hidden", "style"],
     code: [...baseCode, "className", "style"],
     pre: [...basePre, "className", "style", "tabIndex"],
+    div: [...baseDiv, "className", "data-mermaid-source", "data-srcstart", "data-srcend"],
     math: ["xmlns", "display"],
     annotation: ["encoding"],
     "annotation-xml": ["encoding"],
@@ -147,6 +152,7 @@ const loadRehype = async (): Promise<PluggableList> => {
     // on the outer containers those plugins preserve (they rewrite children
     // but keep the wrapping <pre>/<span>).
     rehypeSourcePosition,
+    rehypeMermaid,
     // KaTeX must run before Shiki: remark-rehype emits math as
     // `<pre><code class="math math-display">…</code></pre>`, and Shiki would
     // otherwise treat "math" as an unknown language and render the LaTeX
@@ -207,6 +213,29 @@ function FrontMatterCard({ match }: { match: FrontMatterMatch }) {
   );
 }
 
+const markdownComponents: Components = {
+  div({ className, children, ...props }) {
+    const classes = typeof className === "string" ? className.split(/\s+/) : [];
+    const dataProps = props as Record<string, unknown>;
+    const source =
+      typeof dataProps["data-mermaid-source"] === "string"
+        ? dataProps["data-mermaid-source"]
+        : null;
+    if (classes.includes("mermaid-diagram") && source !== null) {
+      const sourceStart =
+        typeof dataProps["data-srcstart"] === "string" ? dataProps["data-srcstart"] : undefined;
+      const sourceEnd =
+        typeof dataProps["data-srcend"] === "string" ? dataProps["data-srcend"] : undefined;
+      return <MermaidDiagram source={source} sourceStart={sourceStart} sourceEnd={sourceEnd} />;
+    }
+    return (
+      <div className={className} {...props}>
+        {children}
+      </div>
+    );
+  },
+};
+
 function MarkdownRendererInner({ source }: MarkdownRendererProps) {
   const [rehypePlugins, setRehypePlugins] = useState<PluggableList | null>(null);
   const frontMatter = useMemo(() => extractFrontMatter(source), [source]);
@@ -225,6 +254,7 @@ function MarkdownRendererInner({ source }: MarkdownRendererProps) {
           setRehypePlugins([
             rehypeSlug,
             rehypeSourcePosition,
+            rehypeMermaid,
             rehypeKatex,
             [rehypeSanitize, katexSchema],
           ] satisfies PluggableList);
@@ -247,7 +277,11 @@ function MarkdownRendererInner({ source }: MarkdownRendererProps) {
   return (
     <article ref={articleRef} className="markdown-body" data-testid="markdown-body">
       {frontMatter ? <FrontMatterCard match={frontMatter} /> : null}
-      <ReactMarkdown remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>
+      <ReactMarkdown
+        remarkPlugins={remarkPlugins}
+        rehypePlugins={rehypePlugins}
+        components={markdownComponents}
+      >
         {source}
       </ReactMarkdown>
     </article>
@@ -269,10 +303,12 @@ export function SyncMarkdownRenderer({ source }: MarkdownRendererProps) {
       {frontMatter ? <FrontMatterCard match={frontMatter} /> : null}
       <ReactMarkdown
         remarkPlugins={remarkPlugins}
+        components={markdownComponents}
         rehypePlugins={
           [
             rehypeSlug,
             rehypeSourcePosition,
+            rehypeMermaid,
             rehypeKatex,
             [rehypeSanitize, katexSchema],
           ] satisfies PluggableList
