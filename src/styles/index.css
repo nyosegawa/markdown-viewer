@@ -1400,3 +1400,8 @@ body {
 .pdf-export-surface .markdown-body hr {
   background: #d8dee4;
 }
+
+.pdf-export-surface .markdown-body .mermaid-diagram {
+  background: #ffffff;
+  border-color: #d8dee4;
+}

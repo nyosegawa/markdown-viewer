@@ -1,6 +1,33 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { SyncMarkdownRenderer } from "./markdown";
+
+vi.mock("./mermaid/MermaidDiagram", () => ({
+  MermaidDiagram: ({
+    source,
+    sourceStart,
+    sourceEnd,
+  }: {
+    source: string;
+    sourceStart?: string;
+    sourceEnd?: string;
+  }) => (
+    <figure
+      className="mermaid-diagram"
+      data-mermaid-source={source}
+      data-mermaid-status="rendered"
+      data-srcstart={sourceStart}
+      data-srcend={sourceEnd}
+    >
+      <div className="mermaid-diagram-svg">
+        <svg viewBox="0 0 120 40">
+          <title>Mermaid test diagram</title>
+          <text>{source}</text>
+        </svg>
+      </div>
+    </figure>
+  ),
+}));
 
 describe("SyncMarkdownRenderer (GFM)", () => {
   it("renders headings", () => {
@@ -37,6 +64,19 @@ describe("SyncMarkdownRenderer (GFM)", () => {
     );
     expect(container.querySelector("script")).toBeNull();
     expect(container.textContent).toContain("plain text");
+  });
+
+  it("renders mermaid fences as diagram blocks instead of highlighted code", () => {
+    const src = "```mermaid\ngraph TD\n  A[Start] --> B[Done]\n```\n";
+    const { container } = render(<SyncMarkdownRenderer source={src} />);
+    const diagram = container.querySelector(".mermaid-diagram");
+
+    expect(diagram).not.toBeNull();
+    expect(diagram).toHaveAttribute("data-mermaid-source", "graph TD\n  A[Start] --> B[Done]");
+    const start = Number((diagram as HTMLElement | null)?.dataset.srcstart);
+    const end = Number((diagram as HTMLElement | null)?.dataset.srcend);
+    expect(src.slice(start, end)).toBe("```mermaid\ngraph TD\n  A[Start] --> B[Done]\n```");
+    expect(container.querySelector("pre code.language-mermaid")).toBeNull();
   });
 });
 

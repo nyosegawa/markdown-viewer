@@ -47,7 +47,12 @@ async function savePdf(bytes: Uint8Array, filename: string, target: string | nul
 }
 
 function isExportBodyReady(element: HTMLElement): boolean {
-  return !element.textContent?.trim().startsWith("Loading");
+  if (element.textContent?.trim().startsWith("Loading")) return false;
+  for (const diagram of Array.from(element.querySelectorAll<HTMLElement>(".mermaid-diagram"))) {
+    if (diagram.dataset.mermaidStatus === "loading") return false;
+    if (diagram.dataset.mermaidStatus === "rendered" && !diagram.querySelector("svg")) return false;
+  }
+  return true;
 }
 
 async function waitForPdfExportElement(root: HTMLElement): Promise<HTMLElement | null> {
