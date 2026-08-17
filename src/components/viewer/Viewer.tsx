@@ -99,7 +99,7 @@ const BLOCK_TAGS = new Set([
 ]);
 
 function appendLineBreak(parts: string[], maxBreaks: 1 | 2) {
-  while (parts.length > 0 && /[ \t]/.test(parts[parts.length - 1] ?? "")) {
+  while (parts.length > 0 && /^[ \t]+$/.test(parts[parts.length - 1] ?? "")) {
     parts.pop();
   }
   const joined = parts.join("");
@@ -136,16 +136,7 @@ function normalizeCopiedText(text: string): string {
     .trim();
 }
 
-function rangeToRenderedText(body: HTMLElement, range: Range): string {
-  const selectedBlocks = Array.from(body.querySelectorAll<HTMLElement>("[data-srcstart]"))
-    .filter((el) => range.intersectsNode(el))
-    .filter((el, _index, all) => !all.some((other) => other !== el && other.contains(el)));
-  if (selectedBlocks.length > 1) {
-    return normalizeCopiedText(
-      selectedBlocks.map((el) => normalizeCopiedText(el.textContent ?? "")).join("\n\n"),
-    );
-  }
-
+function rangeToRenderedText(range: Range): string {
   const fragment = range.cloneContents();
   const parts: string[] = [];
   for (const child of Array.from(fragment.childNodes)) {
@@ -364,7 +355,7 @@ export function Viewer({ source, tabId, basePath, onOpenLocalLink }: ViewerProps
       const body = root?.querySelector<HTMLElement>('[data-testid="markdown-body"]');
       if (!body) return;
       if (!body.contains(range.commonAncestorContainer)) return;
-      const text = rangeToRenderedText(body, range);
+      const text = rangeToRenderedText(range);
       if (text.length === 0) return;
       e.preventDefault();
       e.clipboardData?.setData("text/plain", text);

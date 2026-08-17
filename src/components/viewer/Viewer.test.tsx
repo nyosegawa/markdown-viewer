@@ -319,4 +319,37 @@ describe("Viewer", () => {
 
     expect(data.getData("text/plain")).toBe("Title\n\nfirst paragraph.\n\nsecond paragraph.");
   });
+
+  it("copy respects partial selection boundaries across rendered blocks", async () => {
+    const source = "# Title\n\nfirst paragraph.\n\nsecond paragraph.\n\nthird paragraph.\n";
+    await renderViewer(source);
+
+    const paragraphs = screen.getByTestId("markdown-body").querySelectorAll("p");
+    const firstText = paragraphs[0]?.firstChild;
+    const secondText = paragraphs[1]?.firstChild;
+    expect(firstText).toBeInstanceOf(Text);
+    expect(secondText).toBeInstanceOf(Text);
+
+    const selection = window.getSelection();
+    expect(selection).not.toBeNull();
+    const range = document.createRange();
+    if (firstText && secondText) {
+      range.setStart(firstText, "first ".length);
+      range.setEnd(secondText, "second".length);
+    }
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+
+    const data = new DataTransfer();
+    const event = new ClipboardEvent("copy", {
+      bubbles: true,
+      cancelable: true,
+      clipboardData: data,
+    });
+    paragraphs[0]?.dispatchEvent(event);
+
+    expect(data.getData("text/plain")).toBe("paragraph.\n\nsecond");
+    expect(data.getData("text/plain")).not.toContain("first ");
+    expect(data.getData("text/plain")).not.toContain("third paragraph.");
+  });
 });
